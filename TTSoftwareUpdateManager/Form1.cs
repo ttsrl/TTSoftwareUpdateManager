@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using TTSoftwareUpdateManager.Properties;
@@ -69,6 +66,7 @@ namespace TTSoftwareUpdateManager
                 disconnettiToolStripMenuItem.Enabled = true;
                 connettiToolStripMenuItem.Enabled = false;
                 treeView1.Enabled = true;
+                nuovoToolStripMenuItem1.Enabled = true;
             }
             else
             {
@@ -76,6 +74,7 @@ namespace TTSoftwareUpdateManager
                 connettiToolStripMenuItem.Enabled = true;
                 treeView1.Nodes.Clear();
                 treeView1.Enabled = false;
+                nuovoToolStripMenuItem1.Enabled = false;
             }
         }
 
@@ -187,7 +186,7 @@ namespace TTSoftwareUpdateManager
                     var version = dirs.Files.Where(f => f.IsDirectory == false && f.Name == "version.txt").Count();
                     var list = dirs.Files.Where(f => f.IsDirectory == false && f.Name == "filelist.txt").Count();
                     var sftw = dirs.Files.Where(f => f.IsDirectory == true && f.Name == "sftw").Count();
-                    if(version > 0 || list > 0 || sftw > 0)
+                    if (version > 0 || list > 0 || sftw > 0)
                     {
                         if (MessageBox.Show("Questa cartella contiene già alcuni file di una precedente convalida.\r\nSe si procede verrà svuotato il contenuto corrente.\r\nSi desidera procedere?", "Convalida precedente rilevata", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
                         {
@@ -203,48 +202,14 @@ namespace TTSoftwareUpdateManager
                             return;
                         }
                     }
-
-                    if(!session.FileExists(fixHost + "/" + fixFolder + "/" + node.Text))
-                        session.CreateDirectory(fixHost + "/" + fixFolder + "/" + node.Text);
-                    if(!session.FileExists(fixHost + "/" + fixFolder + "/" + node.Text + "/sftw"))
-                        session.CreateDirectory(fixHost + "/" + fixFolder + "/" + node.Text + "/sftw");
-
-                    //file temporanei
-                    StreamWriter tw = null;
-                    if (!Directory.Exists("tmp_"))
-                        Directory.CreateDirectory("tmp_");
-
-                    if (File.Exists("tmp_\\version.txt"))
-                        File.Delete("tmp_\\version.txt");
-
-                    tw = new StreamWriter("tmp_\\version.txt", false);
-                    tw.Write("1.0");
-                    tw.Close();
-
-                    if (File.Exists("tmp_\\fileslist.txt"))
-                        File.Delete("tmp_\\fileslist.txt");
-
-                    tw = new StreamWriter("tmp_\\fileslist.txt", false);
-                    tw.Write("");
-                    tw.Close();
-
-                    var upV = session.PutFiles("tmp_\\version.txt", fixHost + "/" + fixFolder + "/" + node.Text + "/version.txt", false, new TransferOptions { OverwriteMode = OverwriteMode.Overwrite, FilePermissions = new FilePermissions(777) });
-                    var upL = session.PutFiles("tmp_\\fileslist.txt", fixHost + "/" + fixFolder + "/" + node.Text + "/fileslist.txt", false, new TransferOptions { OverwriteMode = OverwriteMode.Overwrite, FilePermissions = new FilePermissions(777) });
-
-                    if(upV.IsSuccess && upL.IsSuccess)
-                    {
-                        MessageBox.Show("Convalida completata!", "OK", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
-                    else
+                    var res = createRemoteObj(fixHost + "/" + fixFolder + "/" + node.Text);
+                    if (!res)
                     {
                         MessageBox.Show("Errore durante la creazione dei file remoti di versione o di lista!\r\nSi prega di ripetere l'azione e di controllare eventuali permessi.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
                     }
-                }
-                catch(Exception ex)
-                {
-                    MessageBox.Show("Errore generico durante la procedura di convalida.\r\nLa Cartella selezionata potrebbe essere inesistente o avere i permessi di accesso negati.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-                paintTreeView();
+                    paintTreeView();
+                } catch { MessageBox.Show("Errore generico durante la procedura di convalida.\r\nLa Cartella selezionata potrebbe essere inesistente o avere i permessi di accesso negati.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error); }
             }
         }
 
@@ -330,6 +295,46 @@ namespace TTSoftwareUpdateManager
             } catch { return ""; }
         }
 
+        private bool createRemoteObj(string fullPath)
+        {
+            try
+            {
+                if (!session.FileExists(fullPath))
+                    session.CreateDirectory(fullPath);
+                if (!session.FileExists(fullPath + "/sftw"))
+                    session.CreateDirectory(fullPath + "/sftw");
+
+                //file temporanei
+                StreamWriter tw = null;
+                if (!Directory.Exists("tmp_"))
+                    Directory.CreateDirectory("tmp_");
+
+                if (File.Exists("tmp_\\version.txt"))
+                    File.Delete("tmp_\\version.txt");
+
+                tw = new StreamWriter("tmp_\\version.txt", false);
+                tw.Write("1.0");
+                tw.Close();
+
+                if (File.Exists("tmp_\\fileslist.txt"))
+                    File.Delete("tmp_\\fileslist.txt");
+
+                tw = new StreamWriter("tmp_\\fileslist.txt", false);
+                tw.Write("");
+                tw.Close();
+
+                var upV = session.PutFiles("tmp_\\version.txt", fullPath + "/version.txt", false, new TransferOptions { OverwriteMode = OverwriteMode.Overwrite, FilePermissions = new FilePermissions(777) });
+                var upL = session.PutFiles("tmp_\\fileslist.txt", fullPath + "/fileslist.txt", false, new TransferOptions { OverwriteMode = OverwriteMode.Overwrite, FilePermissions = new FilePermissions(777) });
+
+                if(upV.IsSuccess && upL.IsSuccess)
+                {
+                    return true;
+                }
+                return false;
+            }
+            catch { return false; }
+        }
+
         private async void VersioneToolStripMenuItem_Click(object sender, EventArgs e)
         {
             var node = treeView1.SelectedNode ?? null;
@@ -377,6 +382,9 @@ namespace TTSoftwareUpdateManager
 
         private void RimuoviToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            if (MessageBox.Show("Sei sicuro di voler rimuovere l'intera cartella?", "Conferma", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
+                return;
+
             var node = treeView1.SelectedNode ?? null;
             if (node is TreeNode)
             {
@@ -400,6 +408,9 @@ namespace TTSoftwareUpdateManager
 
         private void SvuotaToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            if (MessageBox.Show("Sei sicuro di voler svuotare la cartella?", "Conferma", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
+                return;
+
             var node = treeView1.SelectedNode ?? null;
             if (node is TreeNode)
             {
@@ -443,6 +454,8 @@ namespace TTSoftwareUpdateManager
 
         private void NuovoToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            var fixhost = Settings.Default.ftp_host.ToLower().Replace("ftp://", "").Replace("ftp.", "").Replace("/", "");
+            var fixFolder = Settings.Default.ftp_folder.Replace("/", "");
             try
             {
                 var input = new inputText();
@@ -450,10 +463,70 @@ namespace TTSoftwareUpdateManager
                 input.Value = "NuovoSoftware";
                 if(input.ShowDialog() == DialogResult.OK)
                 {
-
+                    if(session.FileExists(fixhost + "/" + fixFolder + "/" + input.Value))
+                    {
+                        MessageBox.Show("Nome già usato per un'altro oggetto!", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+                    var res = createRemoteObj(fixhost + "/" + fixFolder + "/" + input.Value);
+                    if (!res)
+                    {
+                        MessageBox.Show("Errore durante la creazione dei file remoti di versione o di lista!\r\nSi prega di ripetere l'azione e di controllare eventuali permessi.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+                    paintTreeView();
                 }
             }
-            catch { }
+            catch { MessageBox.Show("Errore generico durante la creazione del nuovo elemento.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        }
+
+        private void NuovoToolStripMenuItem1_Click(object sender, EventArgs e)
+        {
+            NuovoToolStripMenuItem_Click(sender, new EventArgs());
+        }
+
+        private async void AggiornamentoToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            var node = treeView1.SelectedNode ?? null;
+            if (node is TreeNode)
+            {
+                var fixHost = Settings.Default.ftp_host.ToLower().Replace("ftp://", "").Replace("ftp.", "").Replace("/", "");
+                var fixFolder = Settings.Default.ftp_folder.Replace("/", "");
+                var newVersion = "";
+                try
+                {
+                    var downloadres = session.GetFiles(fixHost + "/" + fixFolder + "/" + node.Text + "/version.txt", "tmp_\\version.txt", false, new TransferOptions { OverwriteMode = OverwriteMode.Overwrite, FilePermissions = new FilePermissions(777) });
+                    if (downloadres.IsSuccess)
+                    {
+                        StreamReader sr = new StreamReader("tmp_\\version.txt");
+                        var vers = await sr.ReadToEndAsync();
+                        sr.Close();
+                        var input = new inputText();
+                        input.TitleProp = "Nuova Versione:";
+                        input.Value = vers;
+                        if(input.ShowDialog() == DialogResult.OK)
+                        {
+                            newVersion = input.Value;
+                        }
+                        else { return; }
+                    }
+                    else { return; }
+                }
+                catch { MessageBox.Show("Errore durante la difinizione della versione.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+
+                try
+                {
+                    var dir = "";
+                    if(folderBrowserDialog1.ShowDialog() == DialogResult.OK)
+                    {
+                        dir = folderBrowserDialog1.SelectedPath;
+                    }
+                    else { return; }
+
+                    
+                }
+                catch { }
+            }
         }
     }
 }
