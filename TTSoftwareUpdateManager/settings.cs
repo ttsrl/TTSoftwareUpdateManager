@@ -83,7 +83,6 @@ namespace TTSoftwareUpdateManager
             txt_username.Text = Settings.Default.ftp_username;
             txt_pass.Text = Settings.Default.ftp_password;
             txt_folder.Text = Settings.Default.ftp_folder;
-            
         }
     }
 }

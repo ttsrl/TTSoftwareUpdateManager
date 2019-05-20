@@ -527,9 +527,24 @@ namespace TTSoftwareUpdateManager
                     }
                     else { return; }
 
+                    if(MessageBox.Show("Si Desidera svuotare la cartella di destinazione prima di procedere all'upload?\r\n[SI] : Cartella svuotata - [No] : File uguali sovrascritti.", "Come si desidera proseguire?", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+                    {
+                        var retRem = session.RemoveFiles(fixHost + "/" + fixFolder + "/" + node.Text + "/sftw");
+                        if (!retRem.IsSuccess)
+                        {
+                            MessageBox.Show("Errore durante il processo di svuotamento della cartella remota. Controllare le credenziali e i privilegi.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return;
+                        }
+                        session.CreateDirectory(fixHost + "/" + fixFolder + "/" + node.Text + "/sftw");
+                    }
                     
+                    var resput = session.PutFiles(dir, fixHost + "/" + fixFolder + "/" + node.Text + "/sftw",false, new TransferOptions { OverwriteMode = OverwriteMode.Overwrite, FilePermissions = new FilePermissions(777) } );
+                    if (resput.IsSuccess)
+                    {
+                        MessageBox.Show("Aggiornamento inviato correttamente!", "OK", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
                 }
-                catch { }
+                catch { MessageBox.Show("Errore durante l'upload dei nuovi file del programma.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error); }
             }
         }
     }
