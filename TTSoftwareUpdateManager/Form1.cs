@@ -7,13 +7,13 @@ using System.Net;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using TTSoftwareUpdateManager.Properties;
-using WinSCP;
+using FluentFTP;
 
 namespace TTSoftwareUpdateManager
 {
     public partial class Form1 : Form
     {
-        Session session = null;
+        FtpClient session = null;
 
         public Form1()
         {
@@ -28,20 +28,15 @@ namespace TTSoftwareUpdateManager
 
         private void ConnettiToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            var fixHost = Settings.Default.ftp_host.ToLower().Replace("ftp://", "").Replace("ftp.", "").Replace("/", "");
+            var fixFolder = Settings.Default.ftp_folder.Replace("/", "");
             try
             {
                 var port = 21;
                 int.TryParse(Settings.Default.ftp_port, out port);
-                SessionOptions sessionOptions = new SessionOptions
-                {
-                    Protocol = Protocol.Ftp,
-                    HostName = Settings.Default.ftp_host,
-                    UserName = Settings.Default.ftp_username,
-                    Password = Settings.Default.ftp_password,
-                    PortNumber = port
-                };
-                session = new Session();
-                session.Open(sessionOptions);
+                session = new FtpClient(Settings.Default.ftp_host, port, Settings.Default.ftp_username, Settings.Default.ftp_password);
+                session.Connect();
+                session.SetWorkingDirectory(fixHost + "/" + fixFolder);
                 changeFtpConnectionStatus();
                 paintTreeView();
             }
@@ -52,7 +47,7 @@ namespace TTSoftwareUpdateManager
         {
             try
             {
-                session.Close();
+                session.Disconnect();
             }
             catch { }
             changeFtpConnectionStatus();
@@ -60,7 +55,7 @@ namespace TTSoftwareUpdateManager
 
         private void changeFtpConnectionStatus()
         {
-            if (session.Opened)
+            if (session.IsConnected)
             {
                 disconnettiToolStripMenuItem.Enabled = true;
                 connettiToolStripMenuItem.Enabled = false;
@@ -79,21 +74,16 @@ namespace TTSoftwareUpdateManager
 
         private void paintTreeView()
         {
-            var fixHost = Settings.Default.ftp_host.ToLower().Replace("ftp://", "").Replace("ftp.", "").Replace("/", "");
-            var fixFolder = Settings.Default.ftp_folder.Replace("/", "");
             try
             {
                 var nodes = new List<TreeNode>();
-                var dirs = session.ListDirectory(fixHost + "/" + fixFolder);
-                foreach (RemoteFileInfo dir in dirs.Files)
+                var dirs = session.GetListing();
+                foreach (var dir in dirs)
                 {
-                    if (dir.Name.Contains(".."))
-                        continue;
-
-                    if (dir.IsDirectory)
+                    if (dir.Type == FtpFileSystemObjectType.Directory)
                     {
                         TreeNode node = null;
-                        var subFiles = session.ListDirectory(fixHost + "/" + fixFolder + "/" + dir);
+                        var subFiles = session.GetListing(dir.Name);
                         var validateFolder = validateSoftwareFolder(subFiles);
                         if (validateFolder)
                         {
@@ -121,20 +111,19 @@ namespace TTSoftwareUpdateManager
             }
             catch
             {
-                session.Close();
+                session.Disconnect();
                 changeFtpConnectionStatus();
                 MessageBox.Show("Errore durante il caricamento della directory ftp.\r\nCartella selezionata inesistente o permessi di accesso negati.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
-        private bool validateSoftwareFolder(RemoteDirectoryInfo directory)
+        private bool validateSoftwareFolder(FtpListItem[] directory)
         {
-            if (directory.Files.Count < 2)
+            if (directory.Length < 3)
                 return false;
-
-            var version = directory.Files.Where(f => f.IsDirectory == false && f.Name == "version.txt").Count();
-            var list = directory.Files.Where(f => f.IsDirectory == false && f.Name == "fileslist.txt").Count();
-            var sftw = directory.Files.Where(f => f.IsDirectory == true && f.Name == "sftw").Count();
+            var version = directory.ToList().Where(f => f.Type == FtpFileSystemObjectType.File && f.Name == "version.txt").Count();
+            var list = directory.ToList().Where(f => f.Type == FtpFileSystemObjectType.File && f.Name == "fileslist.txt").Count();
+            var sftw = directory.ToList().Where(f => f.Type == FtpFileSystemObjectType.Directory && f.Name == "sftw").Count();
             return (version > 0 && list > 0 && sftw > 0) ? true : false;
         }
 
@@ -177,25 +166,23 @@ namespace TTSoftwareUpdateManager
             }
         }
 
-        private void ConvalidaCartellaToolStripMenuItem_Click(object sender, EventArgs e)
+        private async void ConvalidaCartellaToolStripMenuItem_Click(object sender, EventArgs e)
         {
             var node = treeView1.SelectedNode ?? null;
             if (node is TreeNode)
             {
-                var fixHost = Settings.Default.ftp_host.ToLower().Replace("ftp://", "").Replace("ftp.", "").Replace("/", "");
-                var fixFolder = Settings.Default.ftp_folder.Replace("/", "");
                 try
                 {
-                    var dirs = session.ListDirectory(fixHost + "/" + fixFolder + "/" + node.Text);
-                    var version = dirs.Files.Where(f => f.IsDirectory == false && f.Name == "version.txt").Count();
-                    var list = dirs.Files.Where(f => f.IsDirectory == false && f.Name == "filelist.txt").Count();
-                    var sftw = dirs.Files.Where(f => f.IsDirectory == true && f.Name == "sftw").Count();
+                    var dirs = session.GetListing(node.Text);
+                    var version = dirs.ToList().Where(f => f.Type == FtpFileSystemObjectType.File && f.Name == "version.txt").Count();
+                    var list = dirs.ToList().Where(f => f.Type == FtpFileSystemObjectType.File && f.Name == "filelist.txt").Count();
+                    var sftw = dirs.ToList().Where(f => f.Type == FtpFileSystemObjectType.Directory && f.Name == "sftw").Count();
                     if (version > 0 || list > 0 || sftw > 0)
                     {
                         if (MessageBox.Show("Questa cartella contiene già alcuni file di una precedente convalida.\r\nSe si procede verrà svuotato il contenuto corrente.\r\nSi desidera procedere?", "Convalida precedente rilevata", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
                         {
-                            var r = session.RemoveFiles(fixHost + "/" + fixFolder + "/" + node.Text);
-                            if (!r.IsSuccess)
+                            await session.DeleteDirectoryAsync(node.Text);
+                            if (await session.DirectoryExistsAsync(node.Text))
                             {
                                 MessageBox.Show("Errore durante la cancellazione della directory ftp.\r\n I Permessi di accesso potrebbero essere negati.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
                                 return;
@@ -206,83 +193,84 @@ namespace TTSoftwareUpdateManager
                             return;
                         }
                     }
-                    var res = createRemoteObj(fixHost + "/" + fixFolder + "/" + node.Text);
+                    var res = await createRemoteObj(node.Text);
                     if (!res)
                     {
                         MessageBox.Show("Errore durante la creazione dei file remoti di versione o di lista!\r\nSi prega di ripetere l'azione e di controllare eventuali permessi.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         return;
                     }
                     paintTreeView();
-                } catch { MessageBox.Show("Errore generico durante la procedura di convalida.\r\nLa Cartella selezionata potrebbe essere inesistente o avere i permessi di accesso negati.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+                }
+                catch { MessageBox.Show("Errore generico durante la procedura di convalida.\r\nLa Cartella selezionata potrebbe essere inesistente o avere i permessi di accesso negati.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error); }
             }
         }
 
         private void NomeToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var node = treeView1.SelectedNode ?? null;
-            if (node is TreeNode)
-            {
-                var input = new inputText();
-                input.TitleProp = "Nome:";
-                input.Value = node.Text;
-                if(input.ShowDialog() == DialogResult.OK)
-                {
-                    //rename
-                    var fixHost = Settings.Default.ftp_host.ToLower().Replace("ftp://", "").Replace("ftp.", "").Replace("/", "");
-                    var fixFolder = Settings.Default.ftp_folder.Replace("/", "");
-                    if (input.Value != node.Text)
-                    {
-                        try
-                        {
-                            if (session.FileExists(fixHost + "/" + fixFolder + "/" + input.Value))
-                            {
-                                MessageBox.Show("Nome già usato per un'altro oggetto!", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                                return;
-                            }
-                            var r2 = MoveDirectory(fixHost + "/" + fixFolder + "/" + node.Text + "/", fixHost + "/" + fixFolder + "/" + input.Value + "/");
-                            var r = session.RemoveFiles(fixHost + "/" + fixFolder + "/" + node.Text);
-                            if(r2 == false | r.IsSuccess == false)
-                            {
-                                MessageBox.Show("Qualcosa è andato storto durante la procedura", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                                return;
-                            }
-                            node.Text = input.Value;
-                        }
-                        catch
-                        {
-                            MessageBox.Show("Qualcosa è andato storto durante la procedura", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        }
-                    }
-                }
-            }
+            //var node = treeView1.SelectedNode ?? null;
+            //if (node is TreeNode)
+            //{
+            //    var input = new inputText();
+            //    input.TitleProp = "Nome:";
+            //    input.Value = node.Text;
+            //    if(input.ShowDialog() == DialogResult.OK)
+            //    {
+            //        //rename
+            //        var fixHost = Settings.Default.ftp_host.ToLower().Replace("ftp://", "").Replace("ftp.", "").Replace("/", "");
+            //        var fixFolder = Settings.Default.ftp_folder.Replace("/", "");
+            //        if (input.Value != node.Text)
+            //        {
+            //            try
+            //            {
+            //                if (session.FileExists(fixHost + "/" + fixFolder + "/" + input.Value))
+            //                {
+            //                    MessageBox.Show("Nome già usato per un'altro oggetto!", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            //                    return;
+            //                }
+            //                var r2 = MoveDirectory(fixHost + "/" + fixFolder + "/" + node.Text + "/", fixHost + "/" + fixFolder + "/" + input.Value + "/");
+            //                var r = session.RemoveFiles(fixHost + "/" + fixFolder + "/" + node.Text);
+            //                if(r2 == false | r.IsSuccess == false)
+            //                {
+            //                    MessageBox.Show("Qualcosa è andato storto durante la procedura", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            //                    return;
+            //                }
+            //                node.Text = input.Value;
+            //            }
+            //            catch
+            //            {
+            //                MessageBox.Show("Qualcosa è andato storto durante la procedura", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            //            }
+            //        }
+            //    }
+            //}
         }
 
-        private bool MoveDirectory(string oldFullPath, string newFullPath)
-        {
-            try
-            {
-                if (!session.FileExists(oldFullPath))
-                    return false;
-                if (!session.FileExists(newFullPath))
-                    session.CreateDirectory(newFullPath);
-                var files = session.ListDirectory(oldFullPath);
-                foreach (RemoteFileInfo obj in files.Files)
-                {
-                    if (obj.Name.Contains(".."))
-                        continue;
-                    if (obj.IsDirectory)
-                    {
-                        MoveDirectory(oldFullPath + "/" + obj.Name, newFullPath + "/" + obj.Name);
-                    }
-                    else
-                    {
-                        session.MoveFile(obj.FullName, newFullPath + "/" + obj.Name);
-                    }
-                }
-                return true;
-            }
-            catch { return false; }
-        }
+        //private bool MoveDirectory(string oldFullPath, string newFullPath)
+        //{
+            //try
+            //{
+            //    if (!session.FileExists(oldFullPath))
+            //        return false;
+            //    if (!session.FileExists(newFullPath))
+            //        session.CreateDirectory(newFullPath);
+            //    var files = session.ListDirectory(oldFullPath);
+            //    foreach (RemoteFileInfo obj in files.Files)
+            //    {
+            //        if (obj.Name.Contains(".."))
+            //            continue;
+            //        if (obj.IsDirectory)
+            //        {
+            //            MoveDirectory(oldFullPath + "/" + obj.Name, newFullPath + "/" + obj.Name);
+            //        }
+            //        else
+            //        {
+            //            session.MoveFile(obj.FullName, newFullPath + "/" + obj.Name);
+            //        }
+            //    }
+            //    return true;
+            //}
+            //catch { return false; }
+        //}
 
         private async Task<string> GetAsync(string uri)
         {
@@ -299,13 +287,13 @@ namespace TTSoftwareUpdateManager
             } catch { return ""; }
         }
 
-        private bool createRemoteObj(string fullPath)
+        private async Task<bool> createRemoteObj(string fullPath)
         {
             try
             {
-                if (!session.FileExists(fullPath))
+                if (!await session.DirectoryExistsAsync(fullPath))
                     session.CreateDirectory(fullPath);
-                if (!session.FileExists(fullPath + "/sftw"))
+                if (!await session.DirectoryExistsAsync(fullPath + "/sftw"))
                     session.CreateDirectory(fullPath + "/sftw");
 
                 //file temporanei
@@ -327,10 +315,9 @@ namespace TTSoftwareUpdateManager
                 tw.Write("");
                 tw.Close();
 
-                var upV = session.PutFiles("tmp_\\version.txt", fullPath + "/version.txt", false, new TransferOptions { OverwriteMode = OverwriteMode.Overwrite, FilePermissions = new FilePermissions(777) });
-                var upL = session.PutFiles("tmp_\\fileslist.txt", fullPath + "/fileslist.txt", false, new TransferOptions { OverwriteMode = OverwriteMode.Overwrite, FilePermissions = new FilePermissions(777) });
-
-                if(upV.IsSuccess && upL.IsSuccess)
+                var upV = await session.UploadFileAsync("tmp_\\version.txt", fullPath + "/version.txt");
+                var upL = await session.UploadFileAsync("tmp_\\fileslist.txt", fullPath + "/fileslist.txt");
+                if (upV && upL)
                 {
                     return true;
                 }
@@ -341,50 +328,50 @@ namespace TTSoftwareUpdateManager
 
         private async void VersioneToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var node = treeView1.SelectedNode ?? null;
-            if (node is TreeNode)
-            {
-                var fixHost = Settings.Default.ftp_host.ToLower().Replace("ftp://", "").Replace("ftp.", "").Replace("/", "");
-                var fixFolder = Settings.Default.ftp_folder.Replace("/", "");
-                try
-                {
-                    var downloadres = session.GetFiles(fixHost + "/" + fixFolder + "/" + node.Text + "/version.txt", "tmp_\\version.txt", false, new TransferOptions { OverwriteMode = OverwriteMode.Overwrite, FilePermissions = new FilePermissions(777) });
-                    if (downloadres.IsSuccess)
-                    {
-                        StreamReader sr = new StreamReader("tmp_\\version.txt");
-                        var vers = await sr.ReadToEndAsync();
-                        sr.Close();
-                        var input = new inputText();
-                        input.TitleProp = "Versione:";
-                        input.Value = vers;
-                        if (input.ShowDialog() == DialogResult.OK)
-                        {
-                            if (input.Value != vers)
-                            {
-                                StreamWriter tw = new StreamWriter("tmp_\\version.txt", false);
-                                tw.Write(input.Value);
-                                tw.Close();
-                                var upV = session.PutFiles("tmp_\\version.txt", fixHost + "/" + fixFolder + "/" + node.Text + "/version.txt", false, new TransferOptions { OverwriteMode = OverwriteMode.Overwrite, FilePermissions = new FilePermissions(777) });
-                                if (!upV.IsSuccess)
-                                {
-                                    MessageBox.Show("Errore durante l'upload del file di versione", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        MessageBox.Show("Errore durante il download del file di versione.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-                }
-                catch
-                {
-                    MessageBox.Show("Errore generico durante la procedura di cambio versione.\r\nIl file potrebbe essere inesistente o avere i permessi di accesso negati.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-            }
+            //var node = treeView1.SelectedNode ?? null;
+            //if (node is TreeNode)
+            //{
+            //    var fixHost = Settings.Default.ftp_host.ToLower().Replace("ftp://", "").Replace("ftp.", "").Replace("/", "");
+            //    var fixFolder = Settings.Default.ftp_folder.Replace("/", "");
+            //    try
+            //    {
+            //        var downloadres = session.GetFiles(fixHost + "/" + fixFolder + "/" + node.Text + "/version.txt", "tmp_\\version.txt", false, new TransferOptions { OverwriteMode = OverwriteMode.Overwrite, FilePermissions = new FilePermissions(777) });
+            //        if (downloadres.IsSuccess)
+            //        {
+            //            StreamReader sr = new StreamReader("tmp_\\version.txt");
+            //            var vers = await sr.ReadToEndAsync();
+            //            sr.Close();
+            //            var input = new inputText();
+            //            input.TitleProp = "Versione:";
+            //            input.Value = vers;
+            //            if (input.ShowDialog() == DialogResult.OK)
+            //            {
+            //                if (input.Value != vers)
+            //                {
+            //                    StreamWriter tw = new StreamWriter("tmp_\\version.txt", false);
+            //                    tw.Write(input.Value);
+            //                    tw.Close();
+            //                    var upV = session.PutFiles("tmp_\\version.txt", fixHost + "/" + fixFolder + "/" + node.Text + "/version.txt", false, new TransferOptions { OverwriteMode = OverwriteMode.Overwrite, FilePermissions = new FilePermissions(777) });
+            //                    if (!upV.IsSuccess)
+            //                    {
+            //                        MessageBox.Show("Errore durante l'upload del file di versione", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            //                    }
+            //                }
+            //            }
+            //        }
+            //        else
+            //        {
+            //            MessageBox.Show("Errore durante il download del file di versione.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            //        }
+            //    }
+            //    catch
+            //    {
+            //        MessageBox.Show("Errore generico durante la procedura di cambio versione.\r\nIl file potrebbe essere inesistente o avere i permessi di accesso negati.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            //    }
+            //}
         }
 
-        private void RimuoviToolStripMenuItem_Click(object sender, EventArgs e)
+        private async void RimuoviToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (MessageBox.Show("Sei sicuro di voler rimuovere l'intera cartella?", "Conferma", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
                 return;
@@ -392,17 +379,16 @@ namespace TTSoftwareUpdateManager
             var node = treeView1.SelectedNode ?? null;
             if (node is TreeNode)
             {
-                var fixHost = Settings.Default.ftp_host.ToLower().Replace("ftp://", "").Replace("ftp.", "").Replace("/", "");
-                var fixFolder = Settings.Default.ftp_folder.Replace("/", "");
                 try
                 {
-                    var ret = true;
-                    if(session.FileExists(fixHost + "/" + fixFolder + "/" + node.Text))
-                        ret = session.RemoveFiles(fixHost + "/" + fixFolder + "/" + node.Text).IsSuccess;
-                    if (!ret)
+                    if (await session.DirectoryExistsAsync(node.Text))
                     {
-                        MessageBox.Show("Errore durante la rimozione della cartella remota.\r\nControllare i permessi delle cartelle o dei file contenuti.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return;
+                        await session.DeleteDirectoryAsync(node.Text);
+                        if (await session.DirectoryExistsAsync(node.Text))
+                        {
+                            MessageBox.Show("Errore durante la rimozione della cartella remota.\r\nControllare i permessi delle cartelle o dei file contenuti.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            return;
+                        }
                     }
                     paintTreeView();
                 }
@@ -410,7 +396,7 @@ namespace TTSoftwareUpdateManager
             }
         }
 
-        private void SvuotaToolStripMenuItem_Click(object sender, EventArgs e)
+        private async void SvuotaToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (MessageBox.Show("Sei sicuro di voler svuotare la cartella?", "Conferma", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
                 return;
@@ -418,20 +404,16 @@ namespace TTSoftwareUpdateManager
             var node = treeView1.SelectedNode ?? null;
             if (node is TreeNode)
             {
-                var fixhost = Settings.Default.ftp_host.ToLower().Replace("ftp://", "").Replace("ftp.", "").Replace("/", "");
-                var fixFolder = Settings.Default.ftp_folder.Replace("/", "");
                 try
                 {
-                    var r1 = true;
-                    var r2 = true;
-                    var r3 = true;
-                    if (session.FileExists(fixhost + "/" + fixFolder + "/" + node.Text + "/sftw"))
-                        r1 = session.RemoveFiles(fixhost + "/" + fixFolder + "/" + node.Text + "/sftw").IsSuccess;
-                    if (session.FileExists(fixhost + "/" + fixFolder + "/" + node.Text + "/version.txt"))
-                        r2 = session.RemoveFiles(fixhost + "/" + fixFolder + "/" + node.Text + "/version.txt").IsSuccess;
-                    if (session.FileExists(fixhost + "/" + fixFolder + "/" + node.Text + "/fileslist.txt"))
-                        r3 = session.RemoveFiles(fixhost + "/" + fixFolder + "/" + node.Text + "/fileslist.txt").IsSuccess;
-                    if(!r1 || !r2 || !r3)
+
+                    if (await session.DirectoryExistsAsync(node.Text + "/sftw"))
+                        await session.DeleteDirectoryAsync(node.Text + "/sftw");
+                    if (await session.FileExistsAsync(node.Text + "/version.txt"))
+                        await session.DeleteFileAsync(node.Text + "/version.txt");
+                    if (await session.FileExistsAsync(node.Text + "/fileslist.txt"))
+                        await session.DeleteFileAsync(node.Text + "/fileslist.txt");
+                    if (await session.DirectoryExistsAsync(node.Text + "/sftw") || await session.FileExistsAsync(node.Text + "/version.txt") || await session.FileExistsAsync(node.Text + "/fileslist.txt"))
                     {
                         MessageBox.Show("Errore durante la cancellazione di uno o più file.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         return;
@@ -456,23 +438,21 @@ namespace TTSoftwareUpdateManager
             paintTreeView();
         }
 
-        private void NuovoToolStripMenuItem_Click(object sender, EventArgs e)
+        private async void NuovoToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var fixhost = Settings.Default.ftp_host.ToLower().Replace("ftp://", "").Replace("ftp.", "").Replace("/", "");
-            var fixFolder = Settings.Default.ftp_folder.Replace("/", "");
             try
             {
                 var input = new inputText();
                 input.TitleProp = "Nome:";
                 input.Value = "NuovoSoftware";
-                if(input.ShowDialog() == DialogResult.OK)
+                if (input.ShowDialog() == DialogResult.OK)
                 {
-                    if(session.FileExists(fixhost + "/" + fixFolder + "/" + input.Value))
+                    if (await session.FileExistsAsync(input.Value))
                     {
                         MessageBox.Show("Nome già usato per un'altro oggetto!", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         return;
                     }
-                    var res = createRemoteObj(fixhost + "/" + fixFolder + "/" + input.Value);
+                    var res = await createRemoteObj(input.Value);
                     if (!res)
                     {
                         MessageBox.Show("Errore durante la creazione dei file remoti di versione o di lista!\r\nSi prega di ripetere l'azione e di controllare eventuali permessi.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
@@ -491,61 +471,61 @@ namespace TTSoftwareUpdateManager
 
         private async void AggiornamentoToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            var node = treeView1.SelectedNode ?? null;
-            if (node is TreeNode)
-            {
-                var fixHost = Settings.Default.ftp_host.ToLower().Replace("ftp://", "").Replace("ftp.", "").Replace("/", "");
-                var fixFolder = Settings.Default.ftp_folder.Replace("/", "");
-                var newVersion = "";
-                try
-                {
-                    var downloadres = session.GetFiles(fixHost + "/" + fixFolder + "/" + node.Text + "/version.txt", "tmp_\\version.txt", false, new TransferOptions { OverwriteMode = OverwriteMode.Overwrite, FilePermissions = new FilePermissions(777) });
-                    if (downloadres.IsSuccess)
-                    {
-                        StreamReader sr = new StreamReader("tmp_\\version.txt");
-                        var vers = await sr.ReadToEndAsync();
-                        sr.Close();
-                        var input = new inputText();
-                        input.TitleProp = "Nuova Versione:";
-                        input.Value = vers;
-                        if(input.ShowDialog() == DialogResult.OK)
-                        {
-                            newVersion = input.Value;
-                        }
-                        else { return; }
-                    }
-                    else { return; }
-                }
-                catch { MessageBox.Show("Errore durante la difinizione della versione.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+            //var node = treeView1.SelectedNode ?? null;
+            //if (node is TreeNode)
+            //{
+            //    var fixHost = Settings.Default.ftp_host.ToLower().Replace("ftp://", "").Replace("ftp.", "").Replace("/", "");
+            //    var fixFolder = Settings.Default.ftp_folder.Replace("/", "");
+            //    var newVersion = "";
+            //    try
+            //    {
+            //        var downloadres = session.GetFiles(fixHost + "/" + fixFolder + "/" + node.Text + "/version.txt", "tmp_\\version.txt", false, new TransferOptions { OverwriteMode = OverwriteMode.Overwrite, FilePermissions = new FilePermissions(777) });
+            //        if (downloadres.IsSuccess)
+            //        {
+            //            StreamReader sr = new StreamReader("tmp_\\version.txt");
+            //            var vers = await sr.ReadToEndAsync();
+            //            sr.Close();
+            //            var input = new inputText();
+            //            input.TitleProp = "Nuova Versione:";
+            //            input.Value = vers;
+            //            if(input.ShowDialog() == DialogResult.OK)
+            //            {
+            //                newVersion = input.Value;
+            //            }
+            //            else { return; }
+            //        }
+            //        else { return; }
+            //    }
+            //    catch { MessageBox.Show("Errore durante la difinizione della versione.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error); }
 
-                try
-                {
-                    var dir = "";
-                    if(folderBrowserDialog1.ShowDialog() == DialogResult.OK)
-                    {
-                        dir = folderBrowserDialog1.SelectedPath;
-                    }
-                    else { return; }
+            //    try
+            //    {
+            //        var dir = "";
+            //        if(folderBrowserDialog1.ShowDialog() == DialogResult.OK)
+            //        {
+            //            dir = folderBrowserDialog1.SelectedPath;
+            //        }
+            //        else { return; }
 
-                    if(MessageBox.Show("Si Desidera svuotare la cartella di destinazione prima di procedere all'upload?\r\n[SI] : Cartella svuotata - [No] : File uguali sovrascritti.", "Come si desidera proseguire?", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
-                    {
-                        var retRem = session.RemoveFiles(fixHost + "/" + fixFolder + "/" + node.Text + "/sftw");
-                        if (!retRem.IsSuccess)
-                        {
-                            MessageBox.Show("Errore durante il processo di svuotamento della cartella remota. Controllare le credenziali e i privilegi.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            return;
-                        }
-                        session.CreateDirectory(fixHost + "/" + fixFolder + "/" + node.Text + "/sftw");
-                    }
+            //        if(MessageBox.Show("Si Desidera svuotare la cartella di destinazione prima di procedere all'upload?\r\n[SI] : Cartella svuotata - [No] : File uguali sovrascritti.", "Come si desidera proseguire?", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+            //        {
+            //            var retRem = session.RemoveFiles(fixHost + "/" + fixFolder + "/" + node.Text + "/sftw");
+            //            if (!retRem.IsSuccess)
+            //            {
+            //                MessageBox.Show("Errore durante il processo di svuotamento della cartella remota. Controllare le credenziali e i privilegi.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            //                return;
+            //            }
+            //            session.CreateDirectory(fixHost + "/" + fixFolder + "/" + node.Text + "/sftw");
+            //        }
                     
-                    var resput = session.PutFiles(dir, fixHost + "/" + fixFolder + "/" + node.Text + "/sftw",false, new TransferOptions { OverwriteMode = OverwriteMode.Overwrite, FilePermissions = new FilePermissions(777) } );
-                    if (resput.IsSuccess)
-                    {
-                        MessageBox.Show("Aggiornamento inviato correttamente!", "OK", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    }
-                }
-                catch { MessageBox.Show("Errore durante l'upload dei nuovi file del programma.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error); }
-            }
+            //        var resput = session.PutFiles(dir, fixHost + "/" + fixFolder + "/" + node.Text + "/sftw",false, new TransferOptions { OverwriteMode = OverwriteMode.Overwrite, FilePermissions = new FilePermissions(777) } );
+            //        if (resput.IsSuccess)
+            //        {
+            //            MessageBox.Show("Aggiornamento inviato correttamente!", "OK", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            //        }
+            //    }
+            //    catch { MessageBox.Show("Errore durante l'upload dei nuovi file del programma.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+            //}
         }
     }
 }

@@ -10,7 +10,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using TTSoftwareUpdateManager.Properties;
-using WinSCP;
+using FluentFTP;
 
 namespace TTSoftwareUpdateManager
 {
@@ -48,19 +48,11 @@ namespace TTSoftwareUpdateManager
                 int.TryParse(txt_port.Text, out fixPort);
                 try
                 {
-                    SessionOptions sessionOptions = new SessionOptions
+                    FtpClient client = new FtpClient(fixHost, fixPort, txt_username.Text, txt_pass.Text);
+                    client.Connect();
+                    if (client.IsConnected)
                     {
-                        Protocol = Protocol.Ftp,
-                        HostName = fixHost,
-                        UserName = txt_username.Text,
-                        Password = txt_pass.Text,
-                        PortNumber = fixPort
-                    };
-                    Session session = new Session();
-                    session.Open(sessionOptions);
-                    if (session.Opened)
-                    {
-                        session.Close();
+                        client.Disconnect();
                         MessageBox.Show("Connessione stabilita!", "OK", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                 }
