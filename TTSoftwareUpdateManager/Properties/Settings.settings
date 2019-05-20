@@ -15,7 +15,7 @@
       <Value Profile="(Default)" />
     </Setting>
     <Setting Name="ftp_folder" Type="System.String" Scope="User">
-      <Value Profile="(Default)">SoftwareUpdates</Value>
+      <Value Profile="(Default)">SoftwaresUpdates</Value>
     </Setting>
   </Settings>
 </SettingsFile>

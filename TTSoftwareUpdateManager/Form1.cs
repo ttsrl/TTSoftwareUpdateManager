@@ -46,7 +46,6 @@ namespace TTSoftwareUpdateManager
                 paintTreeView();
             }
             catch { MessageBox.Show("Errore, impossibile connettersi!", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error); }
-            
         }
 
         private void DisconnettiToolStripMenuItem_Click(object sender, EventArgs e)
@@ -120,7 +119,12 @@ namespace TTSoftwareUpdateManager
                 treeView1.Nodes.AddRange(nodes.ToArray());
                 treeView1.EndUpdate();
             }
-            catch { MessageBox.Show("Errore durante il caricamento della directory ftp.\r\nCartella selezionata inesistente o permessi di accesso negati.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+            catch
+            {
+                session.Close();
+                changeFtpConnectionStatus();
+                MessageBox.Show("Errore durante il caricamento della directory ftp.\r\nCartella selezionata inesistente o permessi di accesso negati.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private bool validateSoftwareFolder(RemoteDirectoryInfo directory)
