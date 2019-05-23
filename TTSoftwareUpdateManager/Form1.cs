@@ -205,72 +205,42 @@ namespace TTSoftwareUpdateManager
             }
         }
 
-        private void NomeToolStripMenuItem_Click(object sender, EventArgs e)
+        private async void NomeToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            //var node = treeView1.SelectedNode ?? null;
-            //if (node is TreeNode)
-            //{
-            //    var input = new inputText();
-            //    input.TitleProp = "Nome:";
-            //    input.Value = node.Text;
-            //    if(input.ShowDialog() == DialogResult.OK)
-            //    {
-            //        //rename
-            //        var fixHost = Settings.Default.ftp_host.ToLower().Replace("ftp://", "").Replace("ftp.", "").Replace("/", "");
-            //        var fixFolder = Settings.Default.ftp_folder.Replace("/", "");
-            //        if (input.Value != node.Text)
-            //        {
-            //            try
-            //            {
-            //                if (session.FileExists(fixHost + "/" + fixFolder + "/" + input.Value))
-            //                {
-            //                    MessageBox.Show("Nome già usato per un'altro oggetto!", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            //                    return;
-            //                }
-            //                var r2 = MoveDirectory(fixHost + "/" + fixFolder + "/" + node.Text + "/", fixHost + "/" + fixFolder + "/" + input.Value + "/");
-            //                var r = session.RemoveFiles(fixHost + "/" + fixFolder + "/" + node.Text);
-            //                if(r2 == false | r.IsSuccess == false)
-            //                {
-            //                    MessageBox.Show("Qualcosa è andato storto durante la procedura", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            //                    return;
-            //                }
-            //                node.Text = input.Value;
-            //            }
-            //            catch
-            //            {
-            //                MessageBox.Show("Qualcosa è andato storto durante la procedura", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            //            }
-            //        }
-            //    }
-            //}
+            var node = treeView1.SelectedNode ?? null;
+            if (node is TreeNode)
+            {
+                var input = new inputText();
+                input.TitleProp = "Nome:";
+                input.Value = node.Text;
+                if (input.ShowDialog() == DialogResult.OK)
+                {
+                    //rename
+                    if (input.Value != node.Text)
+                    {
+                        try
+                        {
+                            if (await session.DirectoryExistsAsync(input.Value))
+                            {
+                                MessageBox.Show("Nome già usato per un'altro oggetto!", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                return;
+                            }
+                            var r = await session.MoveDirectoryAsync(node.Text, input.Value, FtpExists.Skip);
+                            if (!r)
+                            {
+                                MessageBox.Show("Errore durante la rinomina della cartella", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                return;
+                            }
+                            node.Text = input.Value;
+                        }
+                        catch
+                        {
+                            MessageBox.Show("Errore generico durante la procedura di rinomina", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                    }
+                }
+            }
         }
-
-        //private bool MoveDirectory(string oldFullPath, string newFullPath)
-        //{
-            //try
-            //{
-            //    if (!session.FileExists(oldFullPath))
-            //        return false;
-            //    if (!session.FileExists(newFullPath))
-            //        session.CreateDirectory(newFullPath);
-            //    var files = session.ListDirectory(oldFullPath);
-            //    foreach (RemoteFileInfo obj in files.Files)
-            //    {
-            //        if (obj.Name.Contains(".."))
-            //            continue;
-            //        if (obj.IsDirectory)
-            //        {
-            //            MoveDirectory(oldFullPath + "/" + obj.Name, newFullPath + "/" + obj.Name);
-            //        }
-            //        else
-            //        {
-            //            session.MoveFile(obj.FullName, newFullPath + "/" + obj.Name);
-            //        }
-            //    }
-            //    return true;
-            //}
-            //catch { return false; }
-        //}
 
         private async Task<string> GetAsync(string uri)
         {
@@ -328,47 +298,48 @@ namespace TTSoftwareUpdateManager
 
         private async void VersioneToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            //var node = treeView1.SelectedNode ?? null;
-            //if (node is TreeNode)
-            //{
-            //    var fixHost = Settings.Default.ftp_host.ToLower().Replace("ftp://", "").Replace("ftp.", "").Replace("/", "");
-            //    var fixFolder = Settings.Default.ftp_folder.Replace("/", "");
-            //    try
-            //    {
-            //        var downloadres = session.GetFiles(fixHost + "/" + fixFolder + "/" + node.Text + "/version.txt", "tmp_\\version.txt", false, new TransferOptions { OverwriteMode = OverwriteMode.Overwrite, FilePermissions = new FilePermissions(777) });
-            //        if (downloadres.IsSuccess)
-            //        {
-            //            StreamReader sr = new StreamReader("tmp_\\version.txt");
-            //            var vers = await sr.ReadToEndAsync();
-            //            sr.Close();
-            //            var input = new inputText();
-            //            input.TitleProp = "Versione:";
-            //            input.Value = vers;
-            //            if (input.ShowDialog() == DialogResult.OK)
-            //            {
-            //                if (input.Value != vers)
-            //                {
-            //                    StreamWriter tw = new StreamWriter("tmp_\\version.txt", false);
-            //                    tw.Write(input.Value);
-            //                    tw.Close();
-            //                    var upV = session.PutFiles("tmp_\\version.txt", fixHost + "/" + fixFolder + "/" + node.Text + "/version.txt", false, new TransferOptions { OverwriteMode = OverwriteMode.Overwrite, FilePermissions = new FilePermissions(777) });
-            //                    if (!upV.IsSuccess)
-            //                    {
-            //                        MessageBox.Show("Errore durante l'upload del file di versione", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            //                    }
-            //                }
-            //            }
-            //        }
-            //        else
-            //        {
-            //            MessageBox.Show("Errore durante il download del file di versione.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            //        }
-            //    }
-            //    catch
-            //    {
-            //        MessageBox.Show("Errore generico durante la procedura di cambio versione.\r\nIl file potrebbe essere inesistente o avere i permessi di accesso negati.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            //    }
-            //}
+            var node = treeView1.SelectedNode ?? null;
+            if (node is TreeNode)
+            {
+                var fixHost = Settings.Default.ftp_host.ToLower().Replace("ftp://", "").Replace("ftp.", "").Replace("/", "");
+                var fixFolder = Settings.Default.ftp_folder.Replace("/", "");
+                try
+                {
+                    var down = await session.DownloadFileAsync("tmp_\\version.txt", node.Text + "/version.txt", FtpLocalExists.Overwrite);
+                    if (down)
+                    {
+                        StreamReader sr = new StreamReader("tmp_\\version.txt");
+                        var vers = await sr.ReadToEndAsync();
+                        sr.Close();
+                        var input = new inputText();
+                        input.TitleProp = "Versione:";
+                        input.Value = vers;
+                        if (input.ShowDialog() == DialogResult.OK)
+                        {
+                            if (input.Value != vers)
+                            {
+                                StreamWriter tw = new StreamWriter("tmp_\\version.txt", false);
+                                tw.Write(input.Value);
+                                tw.Close();
+                                var upload = await session.UploadFileAsync("tmp_\\version.txt", node.Text + "/version.txt", FtpExists.Overwrite);
+                                if (!upload)
+                                {
+                                    MessageBox.Show("Errore durante l'upload del file di versione", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        MessageBox.Show("Errore durante il download del file di versione.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+                catch(Exception ex)
+                {
+                    MessageBox.Show(ex.Message);
+                    MessageBox.Show("Errore generico durante la procedura di cambio versione.\r\nIl file potrebbe essere inesistente o avere i permessi di accesso negati.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
         }
 
         private async void RimuoviToolStripMenuItem_Click(object sender, EventArgs e)
