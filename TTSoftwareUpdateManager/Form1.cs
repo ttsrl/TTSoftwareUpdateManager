@@ -26,8 +26,9 @@ namespace TTSoftwareUpdateManager
             frm.ShowDialog();
         }
 
-        private void ConnettiToolStripMenuItem_Click(object sender, EventArgs e)
+        private async void ConnettiToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            toggleWorking();
             var fixHost = Settings.Default.ftp_host.ToLower().Replace("ftp://", "").Replace("ftp.", "").Replace("/", "");
             var fixFolder = Settings.Default.ftp_folder.Replace("/", "");
             try
@@ -38,19 +39,22 @@ namespace TTSoftwareUpdateManager
                 session.Connect();
                 session.SetWorkingDirectory(fixHost + "/" + fixFolder);
                 changeFtpConnectionStatus();
-                paintTreeView();
+                await paintTreeView();
             }
             catch { MessageBox.Show("Errore, impossibile connettersi!", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+            toggleWorking();
         }
 
         private void DisconnettiToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            toggleWorking();
             try
             {
                 session.Disconnect();
             }
             catch { }
             changeFtpConnectionStatus();
+            toggleWorking();
         }
 
         private void changeFtpConnectionStatus()
@@ -59,7 +63,6 @@ namespace TTSoftwareUpdateManager
             {
                 disconnettiToolStripMenuItem.Enabled = true;
                 connettiToolStripMenuItem.Enabled = false;
-                treeView1.Enabled = true;
                 nuovoToolStripMenuItem1.Enabled = true;
             }
             else
@@ -67,23 +70,22 @@ namespace TTSoftwareUpdateManager
                 disconnettiToolStripMenuItem.Enabled = false;
                 connettiToolStripMenuItem.Enabled = true;
                 treeView1.Nodes.Clear();
-                treeView1.Enabled = false;
                 nuovoToolStripMenuItem1.Enabled = false;
             }
         }
 
-        private void paintTreeView()
+        private async Task<bool> paintTreeView()
         {
             try
             {
                 var nodes = new List<TreeNode>();
-                var dirs = session.GetListing();
+                var dirs = await session.GetListingAsync();
                 foreach (var dir in dirs)
                 {
                     if (dir.Type == FtpFileSystemObjectType.Directory)
                     {
                         TreeNode node = null;
-                        var subFiles = session.GetListing(dir.Name);
+                        var subFiles = await session.GetListingAsync(dir.Name);
                         var validateFolder = validateSoftwareFolder(subFiles);
                         if (validateFolder)
                         {
@@ -108,12 +110,14 @@ namespace TTSoftwareUpdateManager
                 treeView1.BeginUpdate();
                 treeView1.Nodes.AddRange(nodes.ToArray());
                 treeView1.EndUpdate();
+                return true;
             }
             catch
             {
                 session.Disconnect();
                 changeFtpConnectionStatus();
                 MessageBox.Show("Errore durante il caricamento della directory ftp.\r\nCartella selezionata inesistente o permessi di accesso negati.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return false;
             }
         }
 
@@ -171,6 +175,7 @@ namespace TTSoftwareUpdateManager
             var node = treeView1.SelectedNode ?? null;
             if (node is TreeNode)
             {
+                toggleWorking();
                 try
                 {
                     var dirs = session.GetListing(node.Text);
@@ -199,9 +204,10 @@ namespace TTSoftwareUpdateManager
                         MessageBox.Show("Errore durante la creazione dei file remoti di versione o di lista!\r\nSi prega di ripetere l'azione e di controllare eventuali permessi.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         return;
                     }
-                    paintTreeView();
+                    await paintTreeView();
                 }
                 catch { MessageBox.Show("Errore generico durante la procedura di convalida.\r\nLa Cartella selezionata potrebbe essere inesistente o avere i permessi di accesso negati.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+                toggleWorking();
             }
         }
 
@@ -210,6 +216,7 @@ namespace TTSoftwareUpdateManager
             var node = treeView1.SelectedNode ?? null;
             if (node is TreeNode)
             {
+                toggleWorking();
                 var input = new inputText();
                 input.TitleProp = "Nome:";
                 input.Value = node.Text;
@@ -239,22 +246,8 @@ namespace TTSoftwareUpdateManager
                         }
                     }
                 }
+                toggleWorking();
             }
-        }
-
-        private async Task<string> GetAsync(string uri)
-        {
-            try
-            {
-                HttpWebRequest request = (HttpWebRequest)WebRequest.Create(uri);
-                request.AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate;
-                using (HttpWebResponse respose = (HttpWebResponse)await request.GetResponseAsync())
-                using (Stream stream = respose.GetResponseStream())
-                using (StreamReader reader = new StreamReader(stream))
-                {
-                    return await reader.ReadToEndAsync();
-                }
-            } catch { return ""; }
         }
 
         private async Task<bool> createRemoteObj(string fullPath)
@@ -301,8 +294,7 @@ namespace TTSoftwareUpdateManager
             var node = treeView1.SelectedNode ?? null;
             if (node is TreeNode)
             {
-                var fixHost = Settings.Default.ftp_host.ToLower().Replace("ftp://", "").Replace("ftp.", "").Replace("/", "");
-                var fixFolder = Settings.Default.ftp_folder.Replace("/", "");
+                toggleWorking();
                 try
                 {
                     var down = await session.DownloadFileAsync("tmp_\\version.txt", node.Text + "/version.txt", FtpLocalExists.Overwrite);
@@ -339,6 +331,7 @@ namespace TTSoftwareUpdateManager
                     MessageBox.Show(ex.Message);
                     MessageBox.Show("Errore generico durante la procedura di cambio versione.\r\nIl file potrebbe essere inesistente o avere i permessi di accesso negati.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
+                toggleWorking();
             }
         }
 
@@ -350,6 +343,7 @@ namespace TTSoftwareUpdateManager
             var node = treeView1.SelectedNode ?? null;
             if (node is TreeNode)
             {
+                toggleWorking();
                 try
                 {
                     if (await session.DirectoryExistsAsync(node.Text))
@@ -361,9 +355,10 @@ namespace TTSoftwareUpdateManager
                             return;
                         }
                     }
-                    paintTreeView();
+                    await paintTreeView();
                 }
                 catch { MessageBox.Show("Errore generico durante la rimozione della cartella remota.\r\nControllare i permessi delle cartelle o dei file contenuti.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+                toggleWorking();
             }
         }
 
@@ -375,9 +370,9 @@ namespace TTSoftwareUpdateManager
             var node = treeView1.SelectedNode ?? null;
             if (node is TreeNode)
             {
+                toggleWorking();
                 try
                 {
-
                     if (await session.DirectoryExistsAsync(node.Text + "/sftw"))
                         await session.DeleteDirectoryAsync(node.Text + "/sftw");
                     if (await session.FileExistsAsync(node.Text + "/version.txt"))
@@ -389,9 +384,10 @@ namespace TTSoftwareUpdateManager
                         MessageBox.Show("Errore durante la cancellazione di uno o più file.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         return;
                     }
-                    paintTreeView();
+                    await paintTreeView();
                 }
                 catch { MessageBox.Show("Errore generico durante lo svuotamento della cartella remota.\r\nControllare i permessi delle cartelle o dei file contenuti.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+                toggleWorking();
             }
         }
 
@@ -404,13 +400,16 @@ namespace TTSoftwareUpdateManager
             }
         }
 
-        private void RefreshToolStripMenuItem_Click(object sender, EventArgs e)
+        private async void RefreshToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            paintTreeView();
+            toggleWorking();
+            await paintTreeView();
+            toggleWorking();
         }
 
         private async void NuovoToolStripMenuItem_Click(object sender, EventArgs e)
         {
+            toggleWorking();
             try
             {
                 var input = new inputText();
@@ -429,10 +428,11 @@ namespace TTSoftwareUpdateManager
                         MessageBox.Show("Errore durante la creazione dei file remoti di versione o di lista!\r\nSi prega di ripetere l'azione e di controllare eventuali permessi.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         return;
                     }
-                    paintTreeView();
+                   await paintTreeView();
                 }
             }
             catch { MessageBox.Show("Errore generico durante la creazione del nuovo elemento.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+            toggleWorking();
         }
 
         private void NuovoToolStripMenuItem1_Click(object sender, EventArgs e)
@@ -497,6 +497,14 @@ namespace TTSoftwareUpdateManager
             //    }
             //    catch { MessageBox.Show("Errore durante l'upload dei nuovi file del programma.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error); }
             //}
+        }
+
+        private void toggleWorking()
+        {
+            treeView1.Enabled = !treeView1.Enabled;
+            progressBar1.Visible = !progressBar1.Visible;
+            fileToolStripMenuItem.Enabled = !fileToolStripMenuItem.Enabled;
+            modificaToolStripMenuItem.Enabled = !modificaToolStripMenuItem.Enabled;
         }
     }
 }
