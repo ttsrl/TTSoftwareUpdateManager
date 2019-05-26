@@ -14,6 +14,8 @@ namespace TTSoftwareUpdateManager
     public partial class Form1 : Form
     {
         FtpClient session = null;
+        List<string> ListSFTWOpened = new List<string>();
+        FileIcon FileIcon = new FileIcon();
 
         public Form1()
         {
@@ -78,6 +80,10 @@ namespace TTSoftwareUpdateManager
         {
             try
             {
+                var fixHost = Settings.Default.ftp_host.ToLower().Replace("ftp://", "").Replace("ftp.", "").Replace("/", "");
+                var fixFolder = Settings.Default.ftp_folder.Replace("/", "");
+                session.SetWorkingDirectory(fixHost + "/" + fixFolder);
+
                 var nodes = new List<TreeNode>();
                 var dirs = await session.GetListingAsync();
                 foreach (var dir in dirs)
@@ -90,7 +96,13 @@ namespace TTSoftwareUpdateManager
                         if (validateFolder)
                         {
                             var subnodes = new List<TreeNode>();
-                            subnodes.Add(new TreeNode("files", 0, 0));
+                            var sftwNode = new TreeNode("files", 0, 0);
+                            if (ListSFTWOpened.Contains(dir.Name))
+                            {
+                                var subsubnodes = await loadSubDirectorySFTW(dir.Name + "/sftw");
+                                sftwNode.Nodes.AddRange(subsubnodes.ToArray());
+                            }
+                            subnodes.Add(sftwNode);
                             subnodes.Add(new TreeNode("Versione", 3, 3));
                             subnodes.Add(new TreeNode("Lista", 4, 4));
                             node = new TreeNode(dir.Name, subnodes.ToArray());
@@ -161,8 +173,11 @@ namespace TTSoftwareUpdateManager
                     if (hitTest.Node.Level == 0)
                     {
                         hitTest.Node.ContextMenuStrip = level0;
+                    }else if (hitTest.Node.Level >= 2)
+                    {
+                        hitTest.Node.ContextMenuStrip = level2;
                     }
-                    else if (hitTest.Node.Level > 0)
+                    else
                     {
                         hitTest.Node.ContextMenuStrip = null;
                     }
@@ -499,12 +514,54 @@ namespace TTSoftwareUpdateManager
             //}
         }
 
+        private async Task<List<TreeNode>> loadSubDirectorySFTW(string path)
+        {
+            var list = await session.GetListingAsync(path);
+            var nodes = new List<TreeNode>();
+            foreach (var elm in list)
+            {
+                var newNode = new TreeNode(elm.Name);
+                if (elm.Type == FtpFileSystemObjectType.Directory)
+                {
+                    var subdirnodes = await loadSubDirectorySFTW(path + "/" + elm.Name);
+                    newNode.ImageIndex = 0;
+                    newNode.Nodes.AddRange(subdirnodes.ToArray());
+                }
+                else
+                {
+                    newNode.ImageIndex = FileIcon.GetIcon(elm, icList);
+                    newNode.SelectedImageIndex = FileIcon.GetIcon(elm, icList);
+                }
+                nodes.Add(newNode);
+            }
+            return nodes;
+        }
+
         private void toggleWorking()
         {
             treeView1.Enabled = !treeView1.Enabled;
             progressBar1.Visible = !progressBar1.Visible;
             fileToolStripMenuItem.Enabled = !fileToolStripMenuItem.Enabled;
             modificaToolStripMenuItem.Enabled = !modificaToolStripMenuItem.Enabled;
+        }
+
+        private async void TreeView1_NodeMouseDoubleClick(object sender, TreeNodeMouseClickEventArgs e)
+        {
+            var node = e.Node;
+            if(node != null && node.Text == "files")
+            {
+                if (!ListSFTWOpened.Contains(node.Parent.Text))
+                {
+                    toggleWorking();
+                    var nodes = await loadSubDirectorySFTW(node.Parent.Text + "/sftw");
+                    node.Nodes.Clear();
+                    treeView1.BeginUpdate();
+                    node.Nodes.AddRange(nodes.ToArray());
+                    treeView1.EndUpdate();
+                    ListSFTWOpened.Add(node.Parent.Text);
+                    toggleWorking();
+                }
+            }
         }
     }
 }

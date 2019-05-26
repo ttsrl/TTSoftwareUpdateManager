@@ -59,9 +59,14 @@
             this.refreshToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.folderBrowserDialog1 = new System.Windows.Forms.FolderBrowserDialog();
             this.progressBar1 = new System.Windows.Forms.ProgressBar();
+            this.level2 = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.downloadToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.rimuoviToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator7 = new System.Windows.Forms.ToolStripSeparator();
             this.menuStrip1.SuspendLayout();
             this.level0.SuspendLayout();
             this.levelNaN.SuspendLayout();
+            this.level2.SuspendLayout();
             this.SuspendLayout();
             // 
             // menuStrip1
@@ -73,7 +78,7 @@
             this.menuStrip1.Location = new System.Drawing.Point(0, 0);
             this.menuStrip1.Name = "menuStrip1";
             this.menuStrip1.Padding = new System.Windows.Forms.Padding(4, 2, 0, 2);
-            this.menuStrip1.Size = new System.Drawing.Size(874, 28);
+            this.menuStrip1.Size = new System.Drawing.Size(1152, 28);
             this.menuStrip1.TabIndex = 0;
             this.menuStrip1.Text = "menuStrip1";
             // 
@@ -83,13 +88,13 @@
             this.connettiToolStripMenuItem,
             this.disconnettiToolStripMenuItem});
             this.fileToolStripMenuItem.Name = "fileToolStripMenuItem";
-            this.fileToolStripMenuItem.Size = new System.Drawing.Size(44, 24);
+            this.fileToolStripMenuItem.Size = new System.Drawing.Size(46, 24);
             this.fileToolStripMenuItem.Text = "File";
             // 
             // connettiToolStripMenuItem
             // 
             this.connettiToolStripMenuItem.Name = "connettiToolStripMenuItem";
-            this.connettiToolStripMenuItem.Size = new System.Drawing.Size(159, 26);
+            this.connettiToolStripMenuItem.Size = new System.Drawing.Size(167, 26);
             this.connettiToolStripMenuItem.Text = "Connetti";
             this.connettiToolStripMenuItem.Click += new System.EventHandler(this.ConnettiToolStripMenuItem_Click);
             // 
@@ -97,7 +102,7 @@
             // 
             this.disconnettiToolStripMenuItem.Enabled = false;
             this.disconnettiToolStripMenuItem.Name = "disconnettiToolStripMenuItem";
-            this.disconnettiToolStripMenuItem.Size = new System.Drawing.Size(159, 26);
+            this.disconnettiToolStripMenuItem.Size = new System.Drawing.Size(167, 26);
             this.disconnettiToolStripMenuItem.Text = "Disconnetti";
             this.disconnettiToolStripMenuItem.Click += new System.EventHandler(this.DisconnettiToolStripMenuItem_Click);
             // 
@@ -108,26 +113,26 @@
             this.toolStripSeparator5,
             this.opzioniToolStripMenuItem});
             this.modificaToolStripMenuItem.Name = "modificaToolStripMenuItem";
-            this.modificaToolStripMenuItem.Size = new System.Drawing.Size(80, 24);
+            this.modificaToolStripMenuItem.Size = new System.Drawing.Size(82, 24);
             this.modificaToolStripMenuItem.Text = "Modifica";
             // 
             // nuovoToolStripMenuItem1
             // 
             this.nuovoToolStripMenuItem1.Enabled = false;
             this.nuovoToolStripMenuItem1.Name = "nuovoToolStripMenuItem1";
-            this.nuovoToolStripMenuItem1.Size = new System.Drawing.Size(136, 26);
+            this.nuovoToolStripMenuItem1.Size = new System.Drawing.Size(144, 26);
             this.nuovoToolStripMenuItem1.Text = "Nuovo";
             this.nuovoToolStripMenuItem1.Click += new System.EventHandler(this.NuovoToolStripMenuItem1_Click);
             // 
             // toolStripSeparator5
             // 
             this.toolStripSeparator5.Name = "toolStripSeparator5";
-            this.toolStripSeparator5.Size = new System.Drawing.Size(133, 6);
+            this.toolStripSeparator5.Size = new System.Drawing.Size(141, 6);
             // 
             // opzioniToolStripMenuItem
             // 
             this.opzioniToolStripMenuItem.Name = "opzioniToolStripMenuItem";
-            this.opzioniToolStripMenuItem.Size = new System.Drawing.Size(136, 26);
+            this.opzioniToolStripMenuItem.Size = new System.Drawing.Size(144, 26);
             this.opzioniToolStripMenuItem.Text = "Opzioni";
             this.opzioniToolStripMenuItem.Click += new System.EventHandler(this.OpzioniToolStripMenuItem_Click);
             // 
@@ -141,10 +146,11 @@
             this.treeView1.Margin = new System.Windows.Forms.Padding(2);
             this.treeView1.Name = "treeView1";
             this.treeView1.SelectedImageIndex = 0;
-            this.treeView1.Size = new System.Drawing.Size(301, 586);
+            this.treeView1.Size = new System.Drawing.Size(456, 755);
             this.treeView1.TabIndex = 1;
             this.treeView1.BeforeCollapse += new System.Windows.Forms.TreeViewCancelEventHandler(this.TreeView1_BeforeCollapse);
             this.treeView1.BeforeExpand += new System.Windows.Forms.TreeViewCancelEventHandler(this.TreeView1_BeforeExpand);
+            this.treeView1.NodeMouseDoubleClick += new System.Windows.Forms.TreeNodeMouseClickEventHandler(this.TreeView1_NodeMouseDoubleClick);
             this.treeView1.MouseDown += new System.Windows.Forms.MouseEventHandler(this.TreeView1_MouseDown);
             // 
             // icList
@@ -157,6 +163,23 @@
             this.icList.Images.SetKeyName(3, "version.png");
             this.icList.Images.SetKeyName(4, "list.png");
             this.icList.Images.SetKeyName(5, "log.png");
+            this.icList.Images.SetKeyName(6, "file.png");
+            this.icList.Images.SetKeyName(7, "bin.png");
+            this.icList.Images.SetKeyName(8, "css.png");
+            this.icList.Images.SetKeyName(9, "dll.png");
+            this.icList.Images.SetKeyName(10, "doc.png");
+            this.icList.Images.SetKeyName(11, "exe.png");
+            this.icList.Images.SetKeyName(12, "htm.png");
+            this.icList.Images.SetKeyName(13, "ico.png");
+            this.icList.Images.SetKeyName(14, "ini.png");
+            this.icList.Images.SetKeyName(15, "iso.png");
+            this.icList.Images.SetKeyName(16, "jar.png");
+            this.icList.Images.SetKeyName(17, "jpg.png");
+            this.icList.Images.SetKeyName(18, "pdf.png");
+            this.icList.Images.SetKeyName(19, "png.png");
+            this.icList.Images.SetKeyName(20, "txt.png");
+            this.icList.Images.SetKeyName(21, "xml.png");
+            this.icList.Images.SetKeyName(22, "zip.png");
             // 
             // level0
             // 
@@ -211,14 +234,14 @@
             // nomeToolStripMenuItem
             // 
             this.nomeToolStripMenuItem.Name = "nomeToolStripMenuItem";
-            this.nomeToolStripMenuItem.Size = new System.Drawing.Size(140, 26);
+            this.nomeToolStripMenuItem.Size = new System.Drawing.Size(148, 26);
             this.nomeToolStripMenuItem.Text = "Nome";
             this.nomeToolStripMenuItem.Click += new System.EventHandler(this.NomeToolStripMenuItem_Click);
             // 
             // versioneToolStripMenuItem
             // 
             this.versioneToolStripMenuItem.Name = "versioneToolStripMenuItem";
-            this.versioneToolStripMenuItem.Size = new System.Drawing.Size(140, 26);
+            this.versioneToolStripMenuItem.Size = new System.Drawing.Size(148, 26);
             this.versioneToolStripMenuItem.Text = "Versione";
             this.versioneToolStripMenuItem.Click += new System.EventHandler(this.VersioneToolStripMenuItem_Click);
             // 
@@ -288,18 +311,45 @@
             // 
             // progressBar1
             // 
-            this.progressBar1.Location = new System.Drawing.Point(373, 293);
+            this.progressBar1.Location = new System.Drawing.Point(450, 387);
             this.progressBar1.Name = "progressBar1";
-            this.progressBar1.Size = new System.Drawing.Size(142, 27);
+            this.progressBar1.Size = new System.Drawing.Size(238, 28);
             this.progressBar1.Style = System.Windows.Forms.ProgressBarStyle.Marquee;
             this.progressBar1.TabIndex = 3;
             this.progressBar1.Visible = false;
+            // 
+            // level2
+            // 
+            this.level2.ImageScalingSize = new System.Drawing.Size(20, 20);
+            this.level2.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.downloadToolStripMenuItem,
+            this.toolStripSeparator7,
+            this.rimuoviToolStripMenuItem1});
+            this.level2.Name = "level2";
+            this.level2.Size = new System.Drawing.Size(211, 86);
+            // 
+            // downloadToolStripMenuItem
+            // 
+            this.downloadToolStripMenuItem.Name = "downloadToolStripMenuItem";
+            this.downloadToolStripMenuItem.Size = new System.Drawing.Size(210, 24);
+            this.downloadToolStripMenuItem.Text = "Download";
+            // 
+            // rimuoviToolStripMenuItem1
+            // 
+            this.rimuoviToolStripMenuItem1.Name = "rimuoviToolStripMenuItem1";
+            this.rimuoviToolStripMenuItem1.Size = new System.Drawing.Size(210, 24);
+            this.rimuoviToolStripMenuItem1.Text = "Rimuovi";
+            // 
+            // toolStripSeparator7
+            // 
+            this.toolStripSeparator7.Name = "toolStripSeparator7";
+            this.toolStripSeparator7.Size = new System.Drawing.Size(207, 6);
             // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 19F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(874, 628);
+            this.ClientSize = new System.Drawing.Size(1152, 797);
             this.Controls.Add(this.progressBar1);
             this.Controls.Add(this.treeView1);
             this.Controls.Add(this.menuStrip1);
@@ -315,6 +365,7 @@
             this.menuStrip1.PerformLayout();
             this.level0.ResumeLayout(false);
             this.levelNaN.ResumeLayout(false);
+            this.level2.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -351,6 +402,10 @@
         private System.Windows.Forms.ToolStripMenuItem aggiornamentoToolStripMenuItem;
         private System.Windows.Forms.FolderBrowserDialog folderBrowserDialog1;
         private System.Windows.Forms.ProgressBar progressBar1;
+        private System.Windows.Forms.ContextMenuStrip level2;
+        private System.Windows.Forms.ToolStripMenuItem downloadToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator7;
+        private System.Windows.Forms.ToolStripMenuItem rimuoviToolStripMenuItem1;
     }
 }
 
