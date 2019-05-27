@@ -566,10 +566,9 @@ namespace TTSoftwareUpdateManager
             var node = treeView1.SelectedNode ?? null;
             if (node is TreeNode)
             {
-                //if (node.Level)
-                //{
-
-                //}
+                var path = node.FullPath.Replace("\\", "/").Replace("files", "sftw");
+                
+                
             }
         }
     }
