@@ -38,6 +38,7 @@ namespace TTSoftwareUpdateManager
                 var port = 21;
                 int.TryParse(Settings.Default.ftp_port, out port);
                 session = new FtpClient(Settings.Default.ftp_host, port, Settings.Default.ftp_username, Settings.Default.ftp_password);
+                session.ConnectTimeout = 1200000;
                 session.Connect();
                 session.SetWorkingDirectory(fixHost + "/" + fixFolder);
                 changeFtpConnectionStatus();
@@ -80,10 +81,6 @@ namespace TTSoftwareUpdateManager
         {
             try
             {
-                var fixHost = Settings.Default.ftp_host.ToLower().Replace("ftp://", "").Replace("ftp.", "").Replace("/", "");
-                var fixFolder = Settings.Default.ftp_folder.Replace("/", "");
-                session.SetWorkingDirectory(fixHost + "/" + fixFolder);
-
                 var nodes = new List<TreeNode>();
                 var dirs = await session.GetListingAsync();
                 foreach (var dir in dirs)
@@ -561,6 +558,18 @@ namespace TTSoftwareUpdateManager
                     ListSFTWOpened.Add(node.Parent.Text);
                     toggleWorking();
                 }
+            }
+        }
+
+        private void RimuoviToolStripMenuItem1_Click(object sender, EventArgs e)
+        {
+            var node = treeView1.SelectedNode ?? null;
+            if (node is TreeNode)
+            {
+                //if (node.Level)
+                //{
+
+                //}
             }
         }
     }

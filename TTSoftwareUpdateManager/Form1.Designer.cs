@@ -61,8 +61,8 @@
             this.progressBar1 = new System.Windows.Forms.ProgressBar();
             this.level2 = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.downloadToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.rimuoviToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator7 = new System.Windows.Forms.ToolStripSeparator();
+            this.rimuoviToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.menuStrip1.SuspendLayout();
             this.level0.SuspendLayout();
             this.levelNaN.SuspendLayout();
@@ -146,7 +146,7 @@
             this.treeView1.Margin = new System.Windows.Forms.Padding(2);
             this.treeView1.Name = "treeView1";
             this.treeView1.SelectedImageIndex = 0;
-            this.treeView1.Size = new System.Drawing.Size(456, 755);
+            this.treeView1.Size = new System.Drawing.Size(486, 755);
             this.treeView1.TabIndex = 1;
             this.treeView1.BeforeCollapse += new System.Windows.Forms.TreeViewCancelEventHandler(this.TreeView1_BeforeCollapse);
             this.treeView1.BeforeExpand += new System.Windows.Forms.TreeViewCancelEventHandler(this.TreeView1_BeforeExpand);
@@ -331,19 +331,20 @@
             // downloadToolStripMenuItem
             // 
             this.downloadToolStripMenuItem.Name = "downloadToolStripMenuItem";
-            this.downloadToolStripMenuItem.Size = new System.Drawing.Size(210, 24);
+            this.downloadToolStripMenuItem.Size = new System.Drawing.Size(147, 24);
             this.downloadToolStripMenuItem.Text = "Download";
+            // 
+            // toolStripSeparator7
+            // 
+            this.toolStripSeparator7.Name = "toolStripSeparator7";
+            this.toolStripSeparator7.Size = new System.Drawing.Size(144, 6);
             // 
             // rimuoviToolStripMenuItem1
             // 
             this.rimuoviToolStripMenuItem1.Name = "rimuoviToolStripMenuItem1";
             this.rimuoviToolStripMenuItem1.Size = new System.Drawing.Size(210, 24);
             this.rimuoviToolStripMenuItem1.Text = "Rimuovi";
-            // 
-            // toolStripSeparator7
-            // 
-            this.toolStripSeparator7.Name = "toolStripSeparator7";
-            this.toolStripSeparator7.Size = new System.Drawing.Size(207, 6);
+            this.rimuoviToolStripMenuItem1.Click += new System.EventHandler(this.RimuoviToolStripMenuItem1_Click);
             // 
             // Form1
             // 

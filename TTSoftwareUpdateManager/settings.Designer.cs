@@ -50,7 +50,7 @@
             this.label1.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label1.Location = new System.Drawing.Point(10, 10);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(99, 15);
+            this.label1.Size = new System.Drawing.Size(127, 20);
             this.label1.TabIndex = 0;
             this.label1.Text = "Connessione FTP";
             // 
@@ -60,7 +60,7 @@
             this.label2.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label2.Location = new System.Drawing.Point(61, 41);
             this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(35, 15);
+            this.label2.Size = new System.Drawing.Size(43, 20);
             this.label2.TabIndex = 1;
             this.label2.Text = "Host:";
             // 
@@ -68,26 +68,26 @@
             // 
             this.label3.AutoSize = true;
             this.label3.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label3.Location = new System.Drawing.Point(33, 73);
+            this.label3.Location = new System.Drawing.Point(26, 73);
             this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(63, 15);
+            this.label3.Size = new System.Drawing.Size(78, 20);
             this.label3.TabIndex = 2;
             this.label3.Text = "Username:";
             // 
             // txt_host
             // 
             this.txt_host.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txt_host.Location = new System.Drawing.Point(102, 38);
+            this.txt_host.Location = new System.Drawing.Point(110, 38);
             this.txt_host.Name = "txt_host";
-            this.txt_host.Size = new System.Drawing.Size(210, 23);
+            this.txt_host.Size = new System.Drawing.Size(202, 27);
             this.txt_host.TabIndex = 0;
             // 
             // txt_username
             // 
             this.txt_username.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txt_username.Location = new System.Drawing.Point(102, 70);
+            this.txt_username.Location = new System.Drawing.Point(110, 70);
             this.txt_username.Name = "txt_username";
-            this.txt_username.Size = new System.Drawing.Size(329, 23);
+            this.txt_username.Size = new System.Drawing.Size(321, 27);
             this.txt_username.TabIndex = 2;
             // 
             // label4
@@ -96,7 +96,7 @@
             this.label4.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.label4.Location = new System.Drawing.Point(324, 41);
             this.label4.Name = "label4";
-            this.label4.Size = new System.Drawing.Size(38, 15);
+            this.label4.Size = new System.Drawing.Size(46, 20);
             this.label4.TabIndex = 5;
             this.label4.Text = "Porta:";
             // 
@@ -105,15 +105,15 @@
             this.txt_port.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.txt_port.Location = new System.Drawing.Point(368, 38);
             this.txt_port.Name = "txt_port";
-            this.txt_port.Size = new System.Drawing.Size(63, 23);
+            this.txt_port.Size = new System.Drawing.Size(63, 27);
             this.txt_port.TabIndex = 1;
             // 
             // txt_pass
             // 
             this.txt_pass.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txt_pass.Location = new System.Drawing.Point(102, 102);
+            this.txt_pass.Location = new System.Drawing.Point(110, 102);
             this.txt_pass.Name = "txt_pass";
-            this.txt_pass.Size = new System.Drawing.Size(329, 23);
+            this.txt_pass.Size = new System.Drawing.Size(321, 27);
             this.txt_pass.TabIndex = 3;
             this.txt_pass.UseSystemPasswordChar = true;
             // 
@@ -121,18 +121,18 @@
             // 
             this.label5.AutoSize = true;
             this.label5.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label5.Location = new System.Drawing.Point(36, 105);
+            this.label5.Location = new System.Drawing.Point(31, 105);
             this.label5.Name = "label5";
-            this.label5.Size = new System.Drawing.Size(60, 15);
+            this.label5.Size = new System.Drawing.Size(73, 20);
             this.label5.TabIndex = 7;
             this.label5.Text = "Password:";
             // 
             // button1
             // 
             this.button1.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.button1.Location = new System.Drawing.Point(356, 131);
+            this.button1.Location = new System.Drawing.Point(357, 131);
             this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(75, 27);
+            this.button1.Size = new System.Drawing.Size(75, 28);
             this.button1.TabIndex = 4;
             this.button1.Text = "Test";
             this.button1.UseVisualStyleBackColor = true;
@@ -164,24 +164,24 @@
             // txt_folder
             // 
             this.txt_folder.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.txt_folder.Location = new System.Drawing.Point(102, 164);
+            this.txt_folder.Location = new System.Drawing.Point(110, 164);
             this.txt_folder.Name = "txt_folder";
-            this.txt_folder.Size = new System.Drawing.Size(329, 23);
+            this.txt_folder.Size = new System.Drawing.Size(321, 27);
             this.txt_folder.TabIndex = 5;
             // 
             // label6
             // 
             this.label6.AutoSize = true;
             this.label6.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label6.Location = new System.Drawing.Point(23, 167);
+            this.label6.Location = new System.Drawing.Point(14, 167);
             this.label6.Name = "label6";
-            this.label6.Size = new System.Drawing.Size(73, 15);
+            this.label6.Size = new System.Drawing.Size(90, 20);
             this.label6.TabIndex = 12;
             this.label6.Text = "Cartella FTP:";
             // 
             // settings
             // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
+            this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 17F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(451, 260);
             this.Controls.Add(this.txt_folder);
