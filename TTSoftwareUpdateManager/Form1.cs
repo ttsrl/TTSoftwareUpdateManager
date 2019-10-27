@@ -18,10 +18,12 @@ namespace TTSoftwareUpdateManager
         List<string> ListSFTWOpened = new List<string>();
         FileIcon FileIcon = new FileIcon();
         UpdateManagerFunctions Manager;
+        Dictionary<string, ProgramObjectInfo> objectsInfo;
 
         public Form1()
         {
             InitializeComponent();
+            objectsInfo = new Dictionary<string, ProgramObjectInfo>();
         }
 
         #region  MENU
@@ -590,5 +592,46 @@ namespace TTSoftwareUpdateManager
             modificaToolStripMenuItem.Enabled = status;
         }
 
+        private async void treeView1_NodeMouseClick(object sender, TreeNodeMouseClickEventArgs e)
+        {
+            var node = e.Node;
+            if(node != null)
+            {
+                var pth = node.Text;
+                var parent = node.Parent;
+                for(var i = 0; i < node.Level; i++)
+                {
+                    pth = parent.Text + "/" + pth;
+                    parent = parent.Parent;
+
+                    if (i < 1)
+                        pth = pth.Replace("files", "sftw").Replace("Versione", "version.txt").Replace("Lista", "fileslist.txt");
+                }
+
+                ProgramObjectInfo objInfo = null;
+                if (objectsInfo.ContainsKey(pth))
+                    objInfo = objectsInfo[pth];
+                else
+                {
+                    setWorking(false);
+                    objInfo = await Manager.GetObjectInfo(pth);
+                    objectsInfo.Add(pth, objInfo);
+                }
+                
+                folderInfo.Visible = true;
+                lbl_dir_nm.Text = objInfo.Name;
+                lbl_dir_type.Text = Enum.GetName(typeof(FtpFileSystemObjectType), objInfo.Type);
+                lbl_dir_url.Text = objInfo.FullPath;
+                lbl_dir_elms.Text = objInfo.Content.ToString();
+                lbl_dir_files.Text = objInfo.ContentFiles.ToString();
+                lbl_dir_folders.Text = objInfo.ContentFolder.ToString();
+                lbl_dir_dim.Text = objInfo.LenghtSuffix + " (" + objInfo.Lenght + " byte)";
+                lbl_dir_lastMod.Text = objInfo.LastModifiedTime.ToString("dd/MM/yyyy HH:mm");
+
+                setWorking(true);
+            }
+            else
+                folderInfo.Visible = false;
+        }
     }
 }

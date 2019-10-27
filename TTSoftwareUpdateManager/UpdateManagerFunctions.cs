@@ -233,5 +233,70 @@ namespace TTSoftwareUpdateManager
             sr.Dispose();
             return fl;
         }
+
+        public async Task<ProgramObjectInfo> GetObjectInfo(string programName)
+        {
+            FtpListItem f;
+            if (programName.Contains("/"))
+            {
+                var par = programName.Substring(0, programName.LastIndexOf("/"));
+                var node = programName.Substring(programName.LastIndexOf("/") + 1);
+                var oi0 = session.GetListing(par);
+                f = oi0.Where(o => o.Name == node).FirstOrDefault();
+            }
+            else
+            {
+                var oi0 = session.GetListing();
+                f = oi0.Where(o => o.Name == programName).FirstOrDefault();
+            }
+            var oi = await session.GetListingAsync(programName, FtpListOption.AllFiles);
+            var cf = oi.Where(o => o.Type == FtpFileSystemObjectType.File).Count();
+            var cd = oi.Where(o => o.Type == FtpFileSystemObjectType.Directory).Count();
+            var l = await calcDimensionFilesInFolder(programName);
+            return new ProgramObjectInfo { Content = oi.Count(), ContentFiles = cf, ContentFolder = cd, LastModifiedTime = f.Modified, Lenght = l, LenghtSuffix = SizeSuffix(l), Name = f.Name, FullPath = f.FullName, Type = f.Type };
+        }
+
+        private async Task<long> calcDimensionFilesInFolder(string programName)
+        {
+            long out_ = 0;
+            var list = session.GetListing(programName);
+            foreach (var elm in list)
+            {
+                if (elm.Type == FtpFileSystemObjectType.File)
+                    out_ += elm.Size;
+                else if (elm.Type == FtpFileSystemObjectType.Directory)
+                    out_ += await calcDimensionFilesInFolder(programName + "/" + elm.Name);
+            }
+            return out_;
+        }
+
+        private string[] SizeSuffixes = { "bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB" };
+        private string SizeSuffix(Int64 value, int decimalPlaces = 1)
+        {
+            if (decimalPlaces < 0) { throw new ArgumentOutOfRangeException("decimalPlaces"); }
+            if (value < 0) { return "-" + SizeSuffix(-value); }
+            if (value == 0) { return string.Format("{0:n" + decimalPlaces + "} bytes", 0); }
+            int mag = (int)Math.Log(value, 1024);
+            decimal adjustedSize = (decimal)value / (1L << (mag * 10));
+            if (Math.Round(adjustedSize, decimalPlaces) >= 1000)
+            {
+                mag += 1;
+                adjustedSize /= 1024;
+            }
+            return string.Format("{0:n" + decimalPlaces + "} {1}", adjustedSize, SizeSuffixes[mag]);
+        }
+    }
+
+    public class ProgramObjectInfo
+    {
+        public int Content { get; set; }
+        public int ContentFiles { get; set; }
+        public int ContentFolder { get; set; }
+        public DateTime LastModifiedTime { get; set; }
+        public long Lenght { get; set; }
+        public string LenghtSuffix { get; set; }
+        public string Name { get; set; }
+        public string FullPath { get; set; }
+        public FtpFileSystemObjectType Type { get; set; }
     }
 }
