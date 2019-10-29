@@ -12,9 +12,10 @@ namespace TTSoftwareUpdateManager
     class UpdateManagerFunctions
     {
         FtpClient session = null;
-        string urlBase = "";
+        public string urlBase = "";
         int port = 21;
         public FtpClient Session { get => session; }
+        private string[] SizeSuffixes = { "byte", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB" };
 
         public UpdateManagerFunctions()
         {
@@ -90,7 +91,7 @@ namespace TTSoftwareUpdateManager
 
         public async Task<bool> ExistRemoteProgramUpdatesStructure(string programName)
         {
-            return await session.FileExistsAsync(programName);
+            return await session.DirectoryExistsAsync(programName);
         }
 
         public async Task<bool> RenameRemoteProgramUpdatesStructure(string programName, string newName)
@@ -100,7 +101,7 @@ namespace TTSoftwareUpdateManager
 
         public async Task<bool> CreateNewProgramUpdatesStructure(string programName)
         {
-            if (await session.FileExistsAsync(programName))
+            if (await session.DirectoryExistsAsync(programName))
                 return false;
             if (!await session.DirectoryExistsAsync(programName))
                 await session.CreateDirectoryAsync(programName);
@@ -121,7 +122,7 @@ namespace TTSoftwareUpdateManager
 
         public async Task<bool> EmptyProgramUpdatesStructure(string programName)
         {
-            if (!await session.FileExistsAsync(programName))
+            if (!await session.DirectoryExistsAsync(programName))
                 return false;
             if (await session.DirectoryExistsAsync(programName + "/sftw"))
                 await session.DeleteDirectoryAsync(programName + "/sftw");
@@ -137,11 +138,23 @@ namespace TTSoftwareUpdateManager
 
         public async Task<bool> RemoveFolder(string programName)
         {
-            if (!await session.FileExistsAsync(programName))
+            if (!await session.DirectoryExistsAsync(programName))
                 return false;
-            if (await session.DirectoryExistsAsync(programName))
                 await session.DeleteDirectoryAsync(programName);
             if (await session.DirectoryExistsAsync(programName))
+                return false;
+            else
+                return true;
+        }
+
+        public async Task<bool> EmptyFolder(string programName)
+        {
+            if (!await session.DirectoryExistsAsync(programName))
+                return false;
+            await session.DeleteDirectoryAsync(programName);
+            if (!await session.DirectoryExistsAsync(programName))
+                await session.CreateDirectoryAsync(programName);
+            if (!await session.DirectoryExistsAsync(programName))
                 return false;
             else
                 return true;
@@ -177,7 +190,11 @@ namespace TTSoftwareUpdateManager
                 return false;
             if (!File.Exists("tmp_\\version.txt"))
                 return false;
-            return await session.UploadFileAsync("tmp_\\version.txt", programName + "/version.txt", FtpExists.Overwrite);
+            await session.DeleteFileAsync(programName + "/version.txt");
+            if (!await session.FileExistsAsync(programName + "/version.txt"))
+                return await session.UploadFileAsync("tmp_\\version.txt", programName + "/version.txt", FtpExists.Overwrite);
+            else
+                return false;
         }
 
         public async Task<bool> UploadFilesListFile(string programName)
@@ -186,7 +203,11 @@ namespace TTSoftwareUpdateManager
                 return false;
             if (!File.Exists("tmp_\\fileslist.txt"))
                 return false;
-            return await session.UploadFileAsync("tmp_\\fileslist.txt", programName + "/fileslist.txt", FtpExists.Overwrite);
+            await session.DeleteFileAsync(programName + "/fileslist.txt");
+            if (!await session.FileExistsAsync(programName + "/fileslist.txt"))
+                return await session.UploadFileAsync("tmp_\\fileslist.txt", programName + "/fileslist.txt", FtpExists.Overwrite);
+            else
+                return false;
         }
 
         public async Task<bool> RemoteContainVersionFile(string programName)
@@ -253,8 +274,24 @@ namespace TTSoftwareUpdateManager
             var cf = oi.Where(o => o.Type == FtpFileSystemObjectType.File).Count();
             var cd = oi.Where(o => o.Type == FtpFileSystemObjectType.Directory).Count();
             var l = await calcDimensionFilesInFolder(programName);
-            return new ProgramObjectInfo { Content = oi.Count(), ContentFiles = cf, ContentFolder = cd, LastModifiedTime = f.Modified, Lenght = l, LenghtSuffix = SizeSuffix(l), Name = f.Name, FullPath = f.FullName, Type = f.Type };
+            string ext = "";
+            if(f.Type == FtpFileSystemObjectType.File)
+                ext = f.Name.Substring(f.Name.LastIndexOf("."));
+            string prev = "";
+            if(ext == ".txt")
+            {
+                var r1 = await session.DownloadFileAsync("tmp\\" + f.Name, programName, FtpLocalExists.Overwrite);
+                if (r1)
+                {
+                    StreamReader sr = new StreamReader("tmp\\" + f.Name);
+                    prev = await sr.ReadToEndAsync();
+                    sr.Close();
+                    sr.Dispose();
+                }
+            }
+            return new ProgramObjectInfo { Content = oi.Count(), ContentFiles = cf, ContentFolder = cd, LastModifiedTime = f.Modified, Lenght = l, LenghtSuffix = SizeSuffix(l), Name = f.Name, FullPath = f.FullName, Type = f.Type, Extension = ext, Text = prev };
         }
+
 
         private async Task<long> calcDimensionFilesInFolder(string programName)
         {
@@ -270,7 +307,6 @@ namespace TTSoftwareUpdateManager
             return out_;
         }
 
-        private string[] SizeSuffixes = { "bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB" };
         private string SizeSuffix(Int64 value, int decimalPlaces = 1)
         {
             if (decimalPlaces < 0) { throw new ArgumentOutOfRangeException("decimalPlaces"); }
@@ -298,5 +334,7 @@ namespace TTSoftwareUpdateManager
         public string Name { get; set; }
         public string FullPath { get; set; }
         public FtpFileSystemObjectType Type { get; set; }
+        public string Extension { get; set; }
+        public string Text { get; set; }
     }
 }
