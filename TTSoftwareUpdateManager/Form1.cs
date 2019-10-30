@@ -65,6 +65,7 @@ namespace TTSoftwareUpdateManager
                 connettiToolStripMenuItem.Enabled = true;
                 treeView1.Nodes.Clear();
                 nuovoToolStripMenuItem1.Enabled = false;
+                folderInfo.Visible = false;
             }
             catch { }
             setWorking(true);
@@ -83,7 +84,6 @@ namespace TTSoftwareUpdateManager
         {
             try
             {
-                //Manager.Session.SetWorkingDirectory(Manager.urlBase);
                 var nodes = new List<TreeNode>();
                 var dirs = await Manager.Session.GetListingAsync();
                 foreach (var dir in dirs)
@@ -339,6 +339,11 @@ namespace TTSoftwareUpdateManager
                         {
                             newVersion = input.Version;
                         }
+                        else
+                        {
+                            setWorking(true);
+                            return;
+                        }
                     }
                     else
                     {
@@ -391,12 +396,13 @@ namespace TTSoftwareUpdateManager
                         fl += nm + "\r\n";
                         remDirs.Add(nm);
                     }
+                    fl = fl.TrimEnd('\r', '\n');
                     if (empty)
                         Manager.CreateLocalFilesListFile(fl);
                     else
                     {
                         await Manager.DownloadFilesListFile(node.Text);
-                        Manager.AppendLocalFilesListFile(fl);
+                        await Manager.AppendLocalFilesListFile(fl);
                     }
                 }
                 catch
@@ -427,8 +433,9 @@ namespace TTSoftwareUpdateManager
                 try
                 {
                     var r1 = await Manager.UploadFilesListFile(node.Text);
-                    var r2 = await Manager.UploadVersionFile(node.Text);
-                    if(!r1 || !r2)
+                    var r2 = Manager.CreateLocalVersionFile(newVersion);
+                    var r3 = await Manager.UploadVersionFile(node.Text);
+                    if(!r1 || !r2 || !r3)
                     {
                         MessageBox.Show("Errore durante il processo di upload di file versione e fileslist. Controllare le credenziali, i privilegi e ritentare.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         setWorking(true);
@@ -444,7 +451,7 @@ namespace TTSoftwareUpdateManager
 
                 //load treenode files
                 node.Expand();
-                foreach (var it in objectsInfo)
+                foreach (var it in objectsInfo.ToDictionary(entry => entry.Key, entry => entry.Value))
                 {
                     if (it.Key.Contains(node.Text))
                         objectsInfo.Remove(it.Key);
@@ -564,7 +571,7 @@ namespace TTSoftwareUpdateManager
                     await paintTreeView();
                 }
                 catch { MessageBox.Show("Errore generico durante lo svuotamento della cartella remota.\r\nControllare i permessi delle cartelle o dei file contenuti.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error); }
-                foreach (var it in objectsInfo)
+                foreach (var it in objectsInfo.ToDictionary(entry => entry.Key, entry => entry.Value))
                 {
                     if (it.Key.Contains(node.Text))
                         objectsInfo.Remove(it.Key);
@@ -592,7 +599,7 @@ namespace TTSoftwareUpdateManager
                     await paintTreeView();
                 }
                 catch { MessageBox.Show("Errore generico durante la rimozione della cartella remota.\r\nControllare i permessi delle cartelle o dei file contenuti.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error); }
-                foreach (var it in objectsInfo)
+                foreach (var it in objectsInfo.ToDictionary(entry => entry.Key, entry => entry.Value))
                 {
                     if (it.Key.Contains(node.Text))
                         objectsInfo.Remove(it.Key);
@@ -638,7 +645,7 @@ namespace TTSoftwareUpdateManager
                     await paintTreeView();
                 }
                 catch { MessageBox.Show("Errore generico durante la procedura di convalida.\r\nLa Cartella selezionata potrebbe essere inesistente o avere i permessi di accesso negati.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error); }
-                foreach (var it in objectsInfo)
+                foreach (var it in objectsInfo.ToDictionary(entry => entry.Key, entry => entry.Value))
                 {
                     if (it.Key.Contains(node.Text))
                         objectsInfo.Remove(it.Key);
@@ -652,19 +659,149 @@ namespace TTSoftwareUpdateManager
         //DA FARE COMPLETAMENTE
         #region CONTEXT_LVL_2
 
-        private void downloadToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-
-        }
-
-        private void RimuoviToolStripMenuItem1_Click(object sender, EventArgs e)
+        private async void downloadToolStripMenuItem_Click(object sender, EventArgs e)
         {
             var node = treeView1.SelectedNode ?? null;
             if (node is TreeNode)
             {
-                var path = node.FullPath.Replace("\\", "/").Replace("files", "sftw");
+                setWorking(false);
+                try
+                {
+                    var parP = getParentProg(node);
+                    var folder = (node.Nodes.Count > 0);
+                    //directory
+                    var dir = "";
+                    if (downloadFile.ShowDialog() == DialogResult.OK)
+                        dir = downloadFile.SelectedPath;
+                    else
+                    {
+                        setWorking(true);
+                        return;
+                    }
 
+                    if (folder)
+                    {
+                        int d = 0;
+                        var list = getListNodes(node);
+                        foreach (var f in list)
+                        {
+                            var furl = parP.Text + "/sftw/" + f;
+                            var dirOut = Path.Combine(dir, f.Replace("/", "\\"));
+                            if (!Directory.Exists(Path.GetDirectoryName(dirOut)))
+                                Directory.CreateDirectory(Path.GetDirectoryName(dirOut));
+                            var down = await Manager.Session.DownloadFileAsync(dirOut, furl, FtpLocalExists.Overwrite, FtpVerify.Throw);
+                            if (!down)
+                            {
+                                MessageBox.Show("Errore durante il download di alcuni file.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                setWorking(true);
+                                return;
+                            }
+                            else
+                                d++;
+                        }
 
+                        if(d == list.Count)
+                            MessageBox.Show("Download completato correttamente", "OK", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    else
+                    {
+                        var path = node.FullPath.Replace("\\", "/").Replace("files", "sftw");
+                        var re = await Manager.Session.DownloadFileAsync(Path.Combine(dir, node.Text), path, FtpLocalExists.Overwrite, FtpVerify.Throw);
+                        if (re)
+                            MessageBox.Show("Download completato correttamente", "OK", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        else
+                        {
+                            MessageBox.Show("Errore durante il download del file.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            setWorking(true);
+                            return;
+                        }
+                    }
+      
+                }
+                catch { MessageBox.Show("Errore durante il download di alcuni file.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+                setWorking(true);
+            }
+        }
+
+        private List<string> getListNodes(TreeNode node)
+        {
+            List<string> list = new List<string>();
+            foreach (TreeNode n in node.Nodes)
+            {
+                if(n.Nodes.Count > 0)
+                {
+                    var res = getListNodes(n);
+                    foreach(var r in res)
+                    {
+                        list.Add(node.Text + "/" + r);
+                    }
+                }
+                else
+                {
+                    list.Add(node.Text + "/" + n.Text);
+                }
+            }
+            return list;
+        }
+
+        private TreeNode getParentProg(TreeNode node)
+        {
+            var lastN = node;
+            while (lastN.Parent != null)
+            {
+                lastN = lastN.Parent;
+            }
+            return lastN;
+        }
+
+        private async void RimuoviToolStripMenuItem1_Click(object sender, EventArgs e)
+        {
+            if (MessageBox.Show("Sei sicuro di voler rimuovere questo elemento?", "Conferma", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.No)
+                return;
+            var node = treeView1.SelectedNode ?? null;
+            if (node is TreeNode)
+            {
+                setWorking(false);
+                try
+                {
+                    var prog = getParentProg(node);
+                    var path = node.FullPath.Replace("\\", "/").Replace("files", "sftw");
+
+                    var dnl = await Manager.DownloadFilesListFile(prog.Text);
+                    if (!dnl)
+                    {
+                        MessageBox.Show("Errore durante il download della lista.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        setWorking(true);
+                        return;
+                    }
+                    var app = await Manager.DisappendLocalFilesListFile(path.Replace(prog.Text + "/", ""));
+                    if (!app)
+                    {
+                        MessageBox.Show("Errore durante il cambio della lista.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        setWorking(true);
+                        return;
+                    }
+                    var folder = (node.Nodes.Count > 0);
+                    if (folder)
+                    {
+                        await Manager.Session.DeleteDirectoryAsync(path);
+                    }
+                    else
+                    {
+                        await Manager.Session.DeleteFileAsync(path);
+                    }
+
+                    var r = await Manager.UploadFilesListFile(prog.Text);
+
+                    LoadSFTWFolder(prog);
+                    foreach (var it in objectsInfo.ToDictionary(entry => entry.Key, entry => entry.Value))
+                    {
+                        if (it.Key.Contains(prog.Text) && (it.Key.Contains(node.Text) || it.Key.Contains("fileslist.txt")))
+                            objectsInfo.Remove(it.Key);
+                    }
+                }
+                catch { MessageBox.Show("Errore durante l'eliminazione dell' elemento.", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);  }
+                setWorking(true);
             }
         }
 

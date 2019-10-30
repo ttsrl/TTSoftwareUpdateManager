@@ -70,18 +70,59 @@ namespace TTSoftwareUpdateManager
             if (File.Exists("tmp_\\fileslist.txt"))
                 File.Delete("tmp_\\fileslist.txt");
             var tw = new StreamWriter("tmp_\\fileslist.txt", false);
-            tw.Write(list);
+            tw.Write(list.TrimEnd('\r', '\n'));
             tw.Close();
             tw.Dispose();
             return File.Exists("tmp_\\fileslist.txt");
         }
 
-        public bool AppendLocalFilesListFile(string list)
+        public async Task<bool> AppendLocalFilesListFile(string list)
         {
             if (list == null)
                 return false;
+            if (!File.Exists("tmp_\\fileslist.txt"))
+                return false;
+            var tr = new StreamReader("tmp_\\fileslist.txt");
+            var read = await tr.ReadToEndAsync();
+            tr.Close();
+            tr.Dispose();
+            var listRead = read.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+            var listWrite = list.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+            var out_ = "";
+            foreach (var lw in listWrite)
+            {
+                var find = listRead.Contains(lw);
+                if (!find)
+                    out_ += lw + "\r\n";
+            }
+            out_ = out_.TrimEnd('\r', '\n');
             var tw = new StreamWriter("tmp_\\fileslist.txt", true);
-            tw.Write(list);
+            tw.Write(out_);
+            tw.Close();
+            tw.Dispose();
+            return File.Exists("tmp_\\fileslist.txt");
+        }
+
+        public async Task<bool> DisappendLocalFilesListFile(string line)
+        {
+            if (line == null)
+                return false;
+            if (!File.Exists("tmp_\\fileslist.txt"))
+                return false;
+            var tr = new StreamReader("tmp_\\fileslist.txt");
+            var read = await tr.ReadToEndAsync();
+            tr.Close();
+            tr.Dispose();
+            var listRead = read.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+            var out_ = "";
+            foreach (var l in listRead)
+            {
+                if (!l.Contains(line))
+                    out_ += l + "\r\n";
+            }
+            out_ = out_.TrimEnd('\r', '\n');
+            var tw = new StreamWriter("tmp_\\fileslist.txt", false);
+            tw.Write(out_);
             tw.Close();
             tw.Dispose();
             return File.Exists("tmp_\\fileslist.txt");
@@ -102,7 +143,7 @@ namespace TTSoftwareUpdateManager
         public async Task<bool> CreateNewProgramUpdatesStructure(string programName)
         {
             if (await session.DirectoryExistsAsync(programName))
-                return false;
+                await session.DeleteDirectoryAsync(programName);
             if (!await session.DirectoryExistsAsync(programName))
                 await session.CreateDirectoryAsync(programName);
             if (!await session.DirectoryExistsAsync(programName + "/sftw"))
@@ -280,10 +321,10 @@ namespace TTSoftwareUpdateManager
             string prev = "";
             if(ext == ".txt")
             {
-                var r1 = await session.DownloadFileAsync("tmp\\" + f.Name, programName, FtpLocalExists.Overwrite);
+                var r1 = await session.DownloadFileAsync("tmp_\\" + f.Name, programName, FtpLocalExists.Overwrite);
                 if (r1)
                 {
-                    StreamReader sr = new StreamReader("tmp\\" + f.Name);
+                    StreamReader sr = new StreamReader("tmp_\\" + f.Name);
                     prev = await sr.ReadToEndAsync();
                     sr.Close();
                     sr.Dispose();

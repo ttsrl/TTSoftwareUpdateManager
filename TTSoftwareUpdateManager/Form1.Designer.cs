@@ -64,6 +64,8 @@
             this.toolStripSeparator7 = new System.Windows.Forms.ToolStripSeparator();
             this.rimuoviToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             this.folderInfo = new System.Windows.Forms.Panel();
+            this.lbl_prev = new System.Windows.Forms.Label();
+            this.lbl_tit_prev = new System.Windows.Forms.Label();
             this.lbl_dir_lastMod = new System.Windows.Forms.Label();
             this.label10 = new System.Windows.Forms.Label();
             this.lbl_dir_dim = new System.Windows.Forms.Label();
@@ -81,8 +83,7 @@
             this.label3 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.label1 = new System.Windows.Forms.Label();
-            this.lbl_tit_prev = new System.Windows.Forms.Label();
-            this.lbl_prev = new System.Windows.Forms.Label();
+            this.downloadFile = new System.Windows.Forms.FolderBrowserDialog();
             this.menuStrip1.SuspendLayout();
             this.level0.SuspendLayout();
             this.levelNaN.SuspendLayout();
@@ -115,7 +116,7 @@
             // connettiToolStripMenuItem
             // 
             this.connettiToolStripMenuItem.Name = "connettiToolStripMenuItem";
-            this.connettiToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.connettiToolStripMenuItem.Size = new System.Drawing.Size(134, 22);
             this.connettiToolStripMenuItem.Text = "Connetti";
             this.connettiToolStripMenuItem.Click += new System.EventHandler(this.ConnettiToolStripMenuItem_Click);
             // 
@@ -123,7 +124,7 @@
             // 
             this.disconnettiToolStripMenuItem.Enabled = false;
             this.disconnettiToolStripMenuItem.Name = "disconnettiToolStripMenuItem";
-            this.disconnettiToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            this.disconnettiToolStripMenuItem.Size = new System.Drawing.Size(134, 22);
             this.disconnettiToolStripMenuItem.Text = "Disconnetti";
             this.disconnettiToolStripMenuItem.Click += new System.EventHandler(this.DisconnettiToolStripMenuItem_Click);
             // 
@@ -396,6 +397,27 @@
             this.folderInfo.TabIndex = 4;
             this.folderInfo.Visible = false;
             // 
+            // lbl_prev
+            // 
+            this.lbl_prev.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.lbl_prev.Location = new System.Drawing.Point(52, 405);
+            this.lbl_prev.Name = "lbl_prev";
+            this.lbl_prev.Size = new System.Drawing.Size(405, 307);
+            this.lbl_prev.TabIndex = 18;
+            this.lbl_prev.Visible = false;
+            // 
+            // lbl_tit_prev
+            // 
+            this.lbl_tit_prev.AutoSize = true;
+            this.lbl_tit_prev.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lbl_tit_prev.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(40)))), ((int)(((byte)(40)))));
+            this.lbl_tit_prev.Location = new System.Drawing.Point(20, 355);
+            this.lbl_tit_prev.Name = "lbl_tit_prev";
+            this.lbl_tit_prev.Size = new System.Drawing.Size(95, 21);
+            this.lbl_tit_prev.TabIndex = 17;
+            this.lbl_tit_prev.Text = "Anteprima:";
+            this.lbl_tit_prev.Visible = false;
+            // 
             // lbl_dir_lastMod
             // 
             this.lbl_dir_lastMod.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
@@ -551,27 +573,6 @@
             this.label1.TabIndex = 0;
             this.label1.Text = "Informazioni:";
             // 
-            // lbl_tit_prev
-            // 
-            this.lbl_tit_prev.AutoSize = true;
-            this.lbl_tit_prev.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.lbl_tit_prev.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(40)))), ((int)(((byte)(40)))), ((int)(((byte)(40)))));
-            this.lbl_tit_prev.Location = new System.Drawing.Point(20, 355);
-            this.lbl_tit_prev.Name = "lbl_tit_prev";
-            this.lbl_tit_prev.Size = new System.Drawing.Size(95, 21);
-            this.lbl_tit_prev.TabIndex = 17;
-            this.lbl_tit_prev.Text = "Anteprima:";
-            this.lbl_tit_prev.Visible = false;
-            // 
-            // lbl_prev
-            // 
-            this.lbl_prev.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.lbl_prev.Location = new System.Drawing.Point(52, 405);
-            this.lbl_prev.Name = "lbl_prev";
-            this.lbl_prev.Size = new System.Drawing.Size(405, 307);
-            this.lbl_prev.TabIndex = 18;
-            this.lbl_prev.Visible = false;
-            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -655,6 +656,7 @@
         private System.Windows.Forms.Label label10;
         private System.Windows.Forms.Label lbl_tit_prev;
         private System.Windows.Forms.Label lbl_prev;
+        private System.Windows.Forms.FolderBrowserDialog downloadFile;
     }
 }
 
