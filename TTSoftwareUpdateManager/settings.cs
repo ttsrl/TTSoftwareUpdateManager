@@ -44,7 +44,7 @@ namespace TTSoftwareUpdateManager
             if (txt_host.Text != "" && txt_port.Text != "" && txt_username.Text != "" && txt_pass.Text != "" && txt_folder.Text != "")
             {
                 var fixPort = 21;
-                var fixHost = txt_host.Text.ToLower().Replace("ftp://", "").Replace("ftp.", "").Replace("/", "");
+                var fixHost = txt_host.Text.ToLower().Replace("ftp://", "").Replace("/", "");
                 int.TryParse(txt_port.Text, out fixPort);
                 try
                 {
@@ -56,8 +56,9 @@ namespace TTSoftwareUpdateManager
                         MessageBox.Show("Connessione stabilita!", "OK", MessageBoxButtons.OK, MessageBoxIcon.Information);
                     }
                 }
-                catch
+                catch(Exception ex)
                 {
+                    MessageBox.Show(ex.Message);
                     MessageBox.Show("Errore, impossibile connettersi!", "Errore", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }

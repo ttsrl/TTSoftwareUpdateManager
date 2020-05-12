@@ -1,9 +1,7 @@
 ﻿using FluentFTP;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using TTSoftwareUpdateManager.Properties;
 
@@ -12,16 +10,13 @@ namespace TTSoftwareUpdateManager
     class UpdateManagerFunctions
     {
         FtpClient session = null;
-        public string urlBase = "";
         int port = 21;
         public FtpClient Session { get => session; }
         private string[] SizeSuffixes = { "byte", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB" };
 
         public UpdateManagerFunctions()
         {
-            var fixHost = Settings.Default.ftp_host.ToLower().Replace("ftp://", "").Replace("ftp.", "").Replace("/", "");
-            var fixFolder = Settings.Default.ftp_folder.Replace("/", "");
-            urlBase = fixHost + "/" + fixFolder;
+            var fixHost = Settings.Default.ftp_host.ToLower().Replace("ftp://", "").Replace("/", "");
             int.TryParse(Settings.Default.ftp_port, out port);
         }
 
@@ -32,7 +27,7 @@ namespace TTSoftwareUpdateManager
                 session = new FtpClient(Settings.Default.ftp_host, port, Settings.Default.ftp_username, Settings.Default.ftp_password);
                 session.ConnectTimeout = 1200000;
                 session.Connect();
-                session.SetWorkingDirectory(urlBase);
+                session.SetWorkingDirectory(Settings.Default.ftp_folder);
             }
             catch(Exception ex) { throw new Exception(ex.Message); }
         }
